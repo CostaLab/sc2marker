@@ -80,7 +80,11 @@ get_gene_PRAUC_pos <- function(scrna, gene, id, step = 0.01) {
   data.id <- data.mat.surf[data.mat.surf$id == id,]
   data.other <- data.mat.surf[data.mat.surf$id != id,]
 
-  for (x.val in quantile(data.id$exp[data.id$id == id], seq(0.001, 0.999, step))) {
+  x.max <- max(data.id$exp)
+  x.min <- min(data.id$exp)
+
+  for (x.val in seq(x.min, x.max, (x.max - x.min)/100)) {
+  # for (x.val in quantile(data.id$exp, seq(0.001, 0.999, step))) {
 
     tp <- sum(data.id$exp >= x.val)
     fp <- sum(data.other$exp >= x.val)
@@ -95,13 +99,13 @@ get_gene_PRAUC_pos <- function(scrna, gene, id, step = 0.01) {
 
   gene.prauc <- gene.prauc[complete.cases(gene.prauc), ]
   gene.prauc <- gene.prauc[order(gene.prauc$x.rec), ]
-  if (sum(gene.prauc$x.pre == min(gene.prauc$x.pre)) > 1) {
-    small.second.pr <- min( gene.prauc$x.pre[gene.prauc$x.pre!=min(gene.prauc$x.pre)])
-    small.second.recall <- gene.prauc$x.rec[gene.prauc$x.pre == small.second.pr]
-    x.add <- data.frame(min(gene.prauc$x.pre), small.second.recall)
-    names(x.add) <- names(gene.prauc)
-    gene.prauc <- rbind(gene.prauc, x.add)
-  }
+  # if (sum(gene.prauc$x.pre == min(gene.prauc$x.pre)) > 1) {
+  #   small.second.pr <- min( gene.prauc$x.pre[gene.prauc$x.pre!=min(gene.prauc$x.pre)])
+  #   small.second.recall <- gene.prauc$x.rec[gene.prauc$x.pre == small.second.pr]
+  #   x.add <- data.frame(min(gene.prauc$x.pre), small.second.recall)
+  #   names(x.add) <- names(gene.prauc)
+  #   gene.prauc <- rbind(gene.prauc, x.add)
+  # }
 
   PRAUC <- Area_Under_Curve(gene.prauc$x.rec,  gene.prauc$x.pre,
                             method = "trapezoid", na.rm = TRUE)
@@ -123,7 +127,11 @@ get_gene_PRAUC_neg <- function(scrna, gene, id, step = 0.01) {
   data.id <- data.mat.surf[data.mat.surf$id == id,]
   data.other <- data.mat.surf[data.mat.surf$id != id,]
 
-  for (x.val in quantile(data.id$exp[data.id$id == id], seq(0.001, 0.999, step))) {
+  x.max <- max(data.id$exp)
+  x.min <- min(data.id$exp)
+
+  for (x.val in seq(x.min, x.max, (x.max - x.min)/100)) {
+  # for (x.val in quantile(data.id$exp, seq(0.001, 0.999, step))) {
 
     tp <- sum(data.id$exp <= x.val)
     fp <- sum(data.other$exp <= x.val)
@@ -138,13 +146,13 @@ get_gene_PRAUC_neg <- function(scrna, gene, id, step = 0.01) {
 
   gene.prauc <- gene.prauc[complete.cases(gene.prauc), ]
   gene.prauc <- gene.prauc[order(gene.prauc$x.rec), ]
-  if (sum(gene.prauc$x.pre == min(gene.prauc$x.pre)) > 1) {
-    small.second.pr <- min( gene.prauc$x.pre[gene.prauc$x.pre!=min(gene.prauc$x.pre)])
-    small.second.recall <- gene.prauc$x.rec[gene.prauc$x.pre == small.second.pr]
-    x.add <- data.frame(min(gene.prauc$x.pre), small.second.recall)
-    names(x.add) <- names(gene.prauc)
-    gene.prauc <- rbind(gene.prauc, x.add)
-  }
+  # if (sum(gene.prauc$x.pre == min(gene.prauc$x.pre)) > 1) {
+  #   small.second.pr <- min( gene.prauc$x.pre[gene.prauc$x.pre!=min(gene.prauc$x.pre)])
+  #   small.second.recall <- gene.prauc$x.rec[gene.prauc$x.pre == small.second.pr]
+  #   x.add <- data.frame(min(gene.prauc$x.pre), small.second.recall)
+  #   names(x.add) <- names(gene.prauc)
+  #   gene.prauc <- rbind(gene.prauc, x.add)
+  # }
 
   PRAUC <- Area_Under_Curve(gene.prauc$x.rec,  gene.prauc$x.pre,
                             method = "trapezoid", na.rm = TRUE)
@@ -167,7 +175,11 @@ get_gene_PRAUC_matrix <- function(scrna, gene, id, step = 0.01) {
   data.id <- data.mat.surf[data.mat.surf$id == id,]
   data.other <- data.mat.surf[data.mat.surf$id != id,]
 
-  for (x.val in quantile(data.id$exp[data.id$id == id], seq(0, 0.999, step))) {
+  x.max <- max(data.id$exp)
+  x.min <- min(data.id$exp)
+
+  for (x.val in seq(x.min, x.max, (x.max - x.min)/100)) {
+    # for (x.val in quantile(data.id$exp, seq(0.001, 0.999, step))) {
 
     tp <- sum(data.id$exp >= x.val)
     fp <- sum(data.other$exp >= x.val)
@@ -179,6 +191,17 @@ get_gene_PRAUC_matrix <- function(scrna, gene, id, step = 0.01) {
     de <- data.frame(x.pre, x.rec)
     gene.prauc <- rbind(gene.prauc, de)
   }
+
+  gene.prauc <- gene.prauc[complete.cases(gene.prauc), ]
+  gene.prauc <- gene.prauc[order(gene.prauc$x.rec), ]
+  # if (sum(gene.prauc$x.pre == min(gene.prauc$x.pre)) > 1) {
+  #   small.second.pr <- min( gene.prauc$x.pre[gene.prauc$x.pre!=min(gene.prauc$x.pre)])
+  #   small.second.recall <- gene.prauc$x.rec[gene.prauc$x.pre == small.second.pr]
+  #   x.add <- data.frame(min(gene.prauc$x.pre), small.second.recall)
+  #   names(x.add) <- names(gene.prauc)
+  #   gene.prauc <- rbind(gene.prauc, x.add)
+  # }
+
   # gene.prauc <- gene.prauc[order(gene.prauc$x.rec, )]
   return(gene.prauc)
 }
@@ -193,7 +216,11 @@ get_gene_PRAUC_matrix.1 <- function(scrna, gene, id, step = 0.01) {
   data.id <- data.mat.surf[data.mat.surf$id == id,]
   data.other <- data.mat.surf[data.mat.surf$id != id,]
 
-  for (x.val in quantile(data.id$exp, seq(0.001, 0.999, step))) {
+  x.max <- max(data.id$exp)
+  x.min <- min(data.id$exp)
+
+  for (x.val in seq(x.min, x.max, (x.max - x.min)/100)) {
+  # for (x.val in quantile(data.id$exp, seq(0.001, 0.999, step))) {
 
     tp <- sum(data.id$exp >= x.val)
     fp <- sum(data.other$exp >= x.val)
@@ -548,7 +575,7 @@ get_split_neg <- function(scrna, gene, id, step = 0.01) {
 }
 
 
-marker_stepbystep <- function(scrna, cellgroup, depth = 2, geneset){
+marker_stepbystep <- function(scrna, cellgroup, depth = 2, geneset, step = 0.01){
   geneset <- intersect(rownames(scrna[["RNA"]]), geneset)
   len.id <- sum(scrna@active.ident == cellgroup)
   len.other <- sum(scrna@active.ident != cellgroup)
@@ -610,13 +637,13 @@ get_PRAUC_matrix_combine_markers <- function(scrna, gene1,  gene2, id, step = 0.
   }
   gene.prauc <- gene.prauc[complete.cases(gene.prauc), ]
   gene.prauc <- gene.prauc[order(gene.prauc$x.rec), ]
-  if (sum(gene.prauc$x.pre == min(gene.prauc$x.pre)) > 1) {
-    small.second.pr <- min( gene.prauc$x.pre[gene.prauc$x.pre!=min(gene.prauc$x.pre)])
-    small.second.recall <- gene.prauc$x.rec[gene.prauc$x.pre == small.second.pr]
-    x.add <- data.frame(min(gene.prauc$x.pre), small.second.recall)
-    names(x.add) <- names(gene.prauc)
-    gene.prauc <- rbind(gene.prauc, x.add)
-  }
+  # if (sum(gene.prauc$x.pre == min(gene.prauc$x.pre)) > 1) {
+  #   small.second.pr <- min( gene.prauc$x.pre[gene.prauc$x.pre!=min(gene.prauc$x.pre)])
+  #   small.second.recall <- gene.prauc$x.rec[gene.prauc$x.pre == small.second.pr]
+  #   x.add <- data.frame(min(gene.prauc$x.pre), small.second.recall)
+  #   names(x.add) <- names(gene.prauc)
+  #   gene.prauc <- rbind(gene.prauc, x.add)
+  # }
   # PRAUC <- Area_Under_Curve(gene.prauc$x.rec,  gene.prauc$x.pre,
   #                           method = "trapezoid", na.rm = TRUE)
   return(gene.prauc)

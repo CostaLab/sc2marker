@@ -116,8 +116,7 @@ markers.i[1:9,]
 
 ```{r}
 
-plot_combine_PRAUC(cbmc, "CD79B", "CD74", "6", return.obj = T) + ggtitle(label = "PRAUC")
-get_PRAUC_matrix_combine_markers(cbmc,  "FAM129C", "COL19A1", "6")
+plot_combine_PRAUC(cbmc, "VPREB3", "CD79B", "6", return.obj = T) + ggtitle(label = "PRAUC")
 plot_combine_PRAUC(cbmc, "FAM129C", "COL19A1", "6", return.obj = T) + ggtitle(label = "COMET combine markers")
 
 
@@ -125,9 +124,9 @@ COMET.combine <- data.frame(cluster1 = c("CORO1B",	"LTB"),
                             )
 
 seq(0,10)
-x.cluster <- 5
-for (x.cluster in seq(1,6)) {
-  genes <- read.csv(paste("data/cluster_", x.cluster, "_pair_final_ranking.csv", sep = ""))
+x.cluster <- 1
+for (x.cluster in seq(1,4)) {
+  genes <- read.csv(paste("/home/ronghui/project/dbmaker/data/cluster_", x.cluster, "_pair_final_ranking.csv", sep = ""))
   genes <- c(genes[1,2], genes[1,3])
   genes <- gsub("_negation", "", genes)
   print(plot_combine_PRAUC(cbmc, genes[1], genes[2], x.cluster, return.obj = T) + ggtitle(label = "COMET combine markers"))
@@ -139,17 +138,17 @@ for (x.cluster in seq(1,6)) {
 
 makers.prauc <- list()
 for (x.cluster in seq(1,6)) {
-  genes <- read.csv(paste("data/cluster_", x.cluster, "_pair_final_ranking.csv", sep = ""))
+  genes <- read.csv(paste("/home/ronghui/project/dbmaker/data/cluster_", x.cluster, "_pair_final_ranking.csv", sep = ""))
   genes <- c(genes[1,2], genes[1,3])
   plot_combine_PRAUC(cbmc, genes[1], genes[2], x.cluster, return.obj = T) + ggtitle(label = "COMET combine markers")
   
   df.split <- marker_stepbystep(cbmc, x.cluster, depth = 2, geneset = markers.allset)
   makers.prauc[[x.cluster]] <- df.split
-  genes <- c(df.split[1,1], genes[2,1])
+  genes <- c(df.split[1,1], df.split[2,1])
   plot_combine_PRAUC(cbmc, genes[1], genes[2], x.cluster, return.obj = T) + ggtitle(label = "PRAUC")
 }
 
-makers.prauc[[2]]
+makers.prauc[[1]]
 
 cbmc1 <- subset(x = cbmc, subset = RPS18 > 4.751374 & CD3E > 1.783727)# & MS4A1 > 1.095634)
 cbmc2 <- subset(x = cbmc, subset = RPL34 > get_split.1(cbmc, "RPL34", "2")$x.val & SOX4 > get_split.1(cbmc, "SOX4", "2")$x.val)# & RPS18 > 4.544471)
@@ -180,10 +179,21 @@ for (x.cluster in seq(1,6)) {
   print(plot_combine_PRAUC(cbmc, genes[1], genes[2], x.cluster, return.obj = T) + ggtitle(label = "PRAUC"))
 }
 
+plot_combine_PRAUC
+
 plot_combine_PRAUC(cbmc, "FAM129C", "COL19A1", "6", return.obj = T) + ggtitle(label = "PRAUC")
 df <- get_PRAUC_matrix_combine_markers(cbmc,  "FAM129C", "COL19A1", "6")
 
 
+markers.i
+
+Detect_combine_markers <- function(scrna, id, geneset, step = 0.01){
+  
+}
+
+```
+```{r}
+df.split
 ```
 
 
@@ -346,38 +356,49 @@ df.split.5 <- marker_stepbystep(cbmc, "5", depth = 3, geneset = markers.allset)
 
 ```{r fig.height=9, fig.width=9}
 
-
+df.split <- df.split.5
 grid_plot(cbmc, df.split.5, "5")
-
 
 
 plot_filter_combination_first2(cbmc, df.split.5, "5")
 
+plot_filter_combination_first2(cbmc, makers.prauc[[1]], "1")
+
+genes
+# "CORO1B" "LTB"  
 scrna <- cbmc
-id <- "5"
+id <- "1"
 # FTH1	UBA52
 
-  df <- data.frame(exp1 = scrna@assays$RNA@data["FTH1",],
-                   exp2 = scrna@assays$RNA@data["UBA52",],
+  df <- data.frame(exp1 = scrna@assays$RNA@data["CORO1B",],
+                   exp2 = scrna@assays$RNA@data["LTB",],
                    ID = as.character(makeid(scrna, id)@active.ident))
   
-  x.split <- df.split$split.value[1]
-  y.split <- df.split$split.value[2]
+  # x.split <- df.split$split.value[1]
+  # y.split <- df.split$split.value[2]
   
   ggplot(df)+
     geom_point(aes(exp1, exp2, color = ID))
   
   get_split_neg(cbmc, "FTH1" , "5")
   get_split_neg(cbmc, "UBA52" , "5")
+  
+  
+  
+  seq(min(cbmc@assays$RNA@data["CORO1B",]),max(cbmc@assays$RNA@data["CORO1B",]),(max(cbmc@assays$RNA@data["CORO1B",]) - min(cbmc@assays$RNA@data["CORO1B",]))/100)
 
 ```
+
+
+
 
 ```{r}
-library(available) # Check if the Title of a Package is Available, 
-                   # Appropriate and Interesting
-# Check for potential names
-available::suggest("Easily extract information about your sample")
+detect_combine_markers <- function(scrna, id, geneset){
+  
+}
 ```
+
+
 
 
 
