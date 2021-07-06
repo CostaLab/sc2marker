@@ -1,4 +1,4 @@
-Package: scMarkersDetect
+Package: scMarkerDetect
 Type: Package
 Title: Detect best marker which best distinguish interested cell groups
 Version: 0.1.0
