@@ -43,6 +43,11 @@ is_contigous_true_df <- function(is_sigs){
   return(ret_df)
 }
 
+#' Reset cell group idents
+#'
+#'
+#'
+#'
 makeid <- function(scrna, id, panel = "seurat_clusters"){
   Idents(scrna) <- "seurat_clusters"
   levels(scrna@active.ident) <- c(levels(scrna@active.ident), "other")

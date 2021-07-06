@@ -9,3 +9,10 @@ Description: More about what it does (maybe more than one line)
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true
+Imports:
+	data.table,
+	Seurat (>= 4.0.1),
+	ggplot2,
+	MLmetrics,
+	dplyr,
+	cowplot
