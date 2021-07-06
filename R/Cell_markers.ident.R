@@ -50,20 +50,6 @@ makeid <- function(scrna, id, panel = "seurat_clusters"){
   return(scrna)
 }
 
-makeid.1 <- function(scrna, id, panel = "seurat_clusters"){
-  Idents(scrna) <- "seurat_clusters"
-
-  levels(scrna@active.ident) <- c(levels(scrna@active.ident), "1")
-  scrna@active.ident[scrna@active.ident != id] <- '1'
-  
-  levels(scrna@active.ident) <- c(levels(scrna@active.ident), "0")
-  scrna@active.ident[scrna@active.ident == id] <- '0'
-  # levels(cbmc@active.ident) <- c("0", "1")
-  return(scrna)
-}
-
-
-
 get_exprs_frac <- function(x.df, step = 100){
   x.min <-  quantile(x.df$exp, c(.01, .99))[1]
   x.max <-  quantile(x.df$exp, c(.01, .99))[2]
@@ -79,20 +65,20 @@ get_gene_PRAUC_pos <- function(scrna, gene, id, step = 0.01) {
                            x.rec <- c())
   data.id <- data.mat.surf[data.mat.surf$id == id,]
   data.other <- data.mat.surf[data.mat.surf$id != id,]
-  
+
   for (x.val in quantile(data.id$exp[data.id$id == id], seq(0.001, 0.999, step))) {
-    
+
     tp <- sum(data.id$exp >= x.val)
     fp <- sum(data.other$exp >= x.val)
     # tn <- sum(data.other$exp < x.val)
     fn <- sum(data.id$exp < x.val)
-    
+
     x.pre <- tp/(tp + fp)
     x.rec <- tp/(tp + fn)
     de <- data.frame(x.pre, x.rec)
     gene.prauc <- rbind(gene.prauc, de)
   }
-  PRAUC <- Area_Under_Curve(gene.prauc$x.rec,  gene.prauc$x.pre, 
+  PRAUC <- Area_Under_Curve(gene.prauc$x.rec,  gene.prauc$x.pre,
                             method = "trapezoid", na.rm = TRUE)
   return(PRAUC)
 }
@@ -104,20 +90,20 @@ get_gene_PRAUC_neg <- function(scrna, gene, id, step = 0.01) {
                            x.rec <- c())
   data.id <- data.mat.surf[data.mat.surf$id == id,]
   data.other <- data.mat.surf[data.mat.surf$id != id,]
-  
+
   for (x.val in quantile(data.id$exp[data.id$id == id], seq(0.001, 0.999, step))) {
-    
+
     tp <- sum(data.id$exp <= x.val)
     fp <- sum(data.other$exp <= x.val)
     # tn <- sum(data.other$exp > x.val)
     fn <- sum(data.id$exp > x.val)
-    
+
     x.pre <- tp/(tp + fp)
     x.rec <- tp/(tp + fn)
     de <- data.frame(x.pre, x.rec)
     gene.prauc <- rbind(gene.prauc, de)
   }
-  PRAUC <- Area_Under_Curve(gene.prauc$x.rec,  gene.prauc$x.pre, 
+  PRAUC <- Area_Under_Curve(gene.prauc$x.rec,  gene.prauc$x.pre,
                             method = "trapezoid", na.rm = TRUE)
   return(PRAUC)
 }
@@ -129,14 +115,14 @@ get_gene_PRAUC_matrix <- function(scrna, gene, id, step = 0.01) {
                            x.rec <- c())
   data.id <- data.mat.surf[data.mat.surf$id == id,]
   data.other <- data.mat.surf[data.mat.surf$id != id,]
-  
+
   for (x.val in quantile(data.id$exp[data.id$id == id], seq(0, 0.999, step))) {
-    
+
     tp <- sum(data.id$exp >= x.val)
     fp <- sum(data.other$exp >= x.val)
     tn <- sum(data.other$exp < x.val)
     fn <- sum(data.id$exp < x.val)
-    
+
     x.pre <- tp/(tp + fp)
     x.rec <- tp/(tp + fn)
     de <- data.frame(x.pre, x.rec)
@@ -152,17 +138,17 @@ get_gene_PRAUC_matrix.1 <- function(scrna, gene, id, step = 0.01) {
   data.mat.surf$id <- ifelse(data.mat.surf$id == id, id, "other")
   gene.prauc <- data.frame(x.pre <- c(),
                            x.rec <- c())
-  
+
   data.id <- data.mat.surf[data.mat.surf$id == id,]
   data.other <- data.mat.surf[data.mat.surf$id != id,]
-  
+
   for (x.val in quantile(data.id$exp, seq(0.001, 0.999, step))) {
-    
+
     tp <- sum(data.id$exp >= x.val)
     fp <- sum(data.other$exp >= x.val)
     tn <- sum(data.other$exp < x.val)
     fn <- sum(data.id$exp < x.val)
-    
+
     x.pre <- tp/(tp + fp)
     x.rec <- tp/(tp + fn)
     de <- data.frame(x.pre, x.rec)
@@ -174,30 +160,30 @@ get_gene_PRAUC_matrix.1 <- function(scrna, gene, id, step = 0.01) {
 identify_single_marker <- function(scrna, cellgroup, geneset, step = 0.01){
   geneset <- intersect(rownames(scrna[["RNA"]]), geneset)
   markers <- FindMarkers(object = scrna, ident.1 = cellgroup, features = geneset)
-  
+
   markers <- subset(markers, p_val_adj < 0.05)
-  
+
   markers.pos <- subset(markers, avg_log2FC > 0)
   markers.neg <- subset(markers, avg_log2FC < 0)
-  
+
   geneset <- intersect(rownames(markers.pos), geneset)
-  
+
   gene.prauc <- data.frame(gene <- c(),
                            prauc <- c(),
                            direction <- c())
-  
+
   for (genes in geneset) {
     de <- data.frame(genes, get_gene_PRAUC_pos(scrna, genes, cellgroup, step), "+")
     names(de)<-c("gene","prauc", "direction")
     gene.prauc <- rbind(gene.prauc, de)
   }
-  
+
   for (genes in geneset) {
     de <- data.frame(genes, get_gene_PRAUC_neg(scrna, genes, cellgroup, step), "-")
     names(de)<-c("gene","prauc", "direction")
     gene.prauc <- rbind(gene.prauc, de)
   }
-  
+
   gene.prauc <- gene.prauc[order(gene.prauc$prauc, decreasing = T),]
   return(gene.prauc)
 }
@@ -208,10 +194,10 @@ plot_grid_2 <- function(scrna, gene1, gene2, id, step = 0.01){
   df <- data.frame(exp1 = scrna@assays$RNA@data[gene1,],
                    exp2 = scrna@assays$RNA@data[gene2,],
                    id = as.character(makeid(scrna, id)@active.ident))
-  
+
   x.split <- get_split(scrna, gene1, id, step = step)
   y.split <- get_split(scrna, gene2, id, step = step)
-  
+
   ggplot(df)+
     geom_point(aes(exp1, exp2, color = id)) +
     geom_segment(aes(x = x.split, y = y.split, xend = max(exp1), yend = y.split), linetype = 2)+
@@ -221,22 +207,22 @@ plot_grid_2 <- function(scrna, gene1, gene2, id, step = 0.01){
 
 
 plot_marker_c_umap <- function(scrna, gene1, gene2, id, step = 0.01){
-  
+
   gene1.split <- get_split(scrna, gene1, id, step = step)
   gene2.split <- get_split(scrna, gene2, id, step = step)
-  
+
   cells.1 <- GetCellNames(cbmc, gene1, gene1.split)
   cells.2 <- GetCellNames(cbmc, gene2, gene2.split)
   cells.1.2 <- intersect(cells.1, cells.2)
-  
+
   Idents(scrna) <- "other"
   Idents(scrna, cells = cells.1) <- paste(gene1, "positive")
   p1 <- UMAPPlot(scrna, cols = c('red', "grey"))
-  
+
   Idents(scrna) <- "other"
   Idents(scrna, cells = cells.2) <- paste(gene2, "positive")
   p2 <- UMAPPlot(scrna, cols = c('blue', "grey"))
-  
+
   Idents(scrna) <- "other"
   Idents(scrna, cells = cells.1.2) <- paste(gene1, "+", gene2)
   p3 <- UMAPPlot(scrna, cols = c('black',  "grey"))
@@ -261,14 +247,14 @@ get_split <- function(scrna, gene, id, step = 0.01) {
                            margin <- c())
   data.id <- data.mat.surf[data.mat.surf$id == id,]
   data.other <- data.mat.surf[data.mat.surf$id != id,]
-  
+
   for (x.val in quantile(data.id$exp[data.id$id == id], seq(0.001, 0.999, step))) {
-    
+
     tp <- sum(data.id$exp >= x.val)
     fp <- sum(data.other$exp >= x.val)
     # tn <- sum(data.other$exp < x.val)
     fn <- sum(data.id$exp < x.val)
-    
+
     x.margin <- tp - fn - fp
     # x.margin <- sum(data.id[,1] - x.val) + sum(x.val - data.other[,1])
     de <- data.frame(x.val, x.margin)
@@ -284,9 +270,9 @@ plot_grid_1 <- function(scrna, gene, id, step = 0.01){
   df <- data.frame(exp1 = scrna@assays$RNA@data[gene,],
                    exp2 = rnorm(length(scrna@assays$RNA@data[gene,]), sd = 0.1),
                    id = as.character(makeid(scrna, id)@active.ident))
-  
+
   x.split <- get_split(scrna, gene, id, step = step)
-  
+
   ggplot(df)+
     geom_point(aes(exp2, exp1, color = id)) +
     # geom_vline(xintercept=x.split)+
@@ -309,21 +295,21 @@ get_split.1 <- function(scrna, gene, id, step = 0.01) {
   data.id <- data.mat.surf[data.mat.surf$id == id,]
   data.other <- data.mat.surf[data.mat.surf$id != id,]
   x.factor <- length(data.other$id)/length(data.id$id)
-  
+
   for (x.val in quantile(data.id$exp[data.id$id == id], seq(0.001, 0.999, step))) {
-    
+
     tp <- sum(data.id$exp >= x.val)
     fp <- sum(data.other$exp >= x.val)
     tn <- sum(data.other$exp < x.val)
     fn <- sum(data.id$exp < x.val)
-    
+
     if (length(data.id$id) <= length(data.other$id)) {
       x.margin <- tn - fn*x.factor
     }
     else{
       x.margin <- tn - fn
     }
-    
+
     # x.pre <- tp/(tp + fp)
     # x.rec <- tp/(tp + fn)
     # x.margin <- sum(data.id[,1] - x.val) + sum(x.val - data.other[,1])
@@ -345,13 +331,13 @@ marker_stepbystep <- function(scrna, cellgroup, depth = 2, geneset){
   len.id <- sum(scrna@active.ident == cellgroup)
   len.other <- sum(scrna@active.ident != cellgroup)
   df.split <- data.frame()
-  
+
   for (variable in seq(depth)) {
     markers <- FindMarkers(scrna, ident.1 = cellgroup, features = geneset)
     markers <- subset(markers, avg_log2FC > 0)
     markers <- subset(markers, p_val_adj < 0.05)
     geneset <- intersect(rownames(markers), geneset)
-    
+
     gene.prauc <- data.frame(
       gene <- c(),
       split.value <- c(),
@@ -362,13 +348,13 @@ marker_stepbystep <- function(scrna, cellgroup, depth = 2, geneset){
     for (genes in geneset) {
       de <- data.frame(genes, get_split.1(scrna, genes, cellgroup, step))
       names(de)<-c("gene", "split.value","filtered.adj")
-      
+
       gene.prauc <- rbind(gene.prauc, de)
     }
     gene.prauc <- gene.prauc[order(gene.prauc$filtered.adj, decreasing = T),]
-    
+
     df.split <- rbind(df.split, gene.prauc[1,])
-    
+
     left.cells <- GetCellNames(scrna, gene.prauc[1,1], gene.prauc[1,2])
     scrna <- subset(scrna, cells = left.cells)
   }
@@ -382,10 +368,10 @@ plot_filter_stepbystep_first2 <- function(scrna, df.split, id, step = 0.01){
   df <- data.frame(exp1 = scrna@assays$RNA@data[gene1,],
                    exp2 = scrna@assays$RNA@data[gene2,],
                    id = as.character(makeid(scrna, id)@active.ident))
-  
+
   x.split <- df.split$split.value[1]
   y.split <- df.split$split.value[2]
-  
+
   ggplot(df)+
     geom_point(aes(exp1, exp2, color = id)) +
     geom_segment(aes(x = x.split, y = y.split, xend = max(exp1), yend = y.split), linetype = 2)+
@@ -399,25 +385,25 @@ plot_filter_combination_first2 <- function(scrna, df.split, id, step = 0.01){
   df <- data.frame(exp1 = scrna@assays$RNA@data[gene1,],
                    exp2 = scrna@assays$RNA@data[gene2,],
                    ID = as.character(makeid(scrna, id)@active.ident))
-  
+
   x.split <- df.split$split.value[1]
   y.split <- df.split$split.value[2]
-  
+
   g <- ggplot(df)+
     geom_point(aes(exp1, exp2, color = ID))
-  
+
   if (df.split$direction[2] == "+") {
     g <- g + geom_segment(aes(x = x.split, y = y.split, xend = x.split, yend = max(exp2)), linetype = 2)
   }else{
     g <- g + geom_segment(aes(x = x.split, y = y.split, xend = x.split, yend = min(exp2)), linetype = 2)
   }
-  
+
   if(df.split$direction[1] == "+") {
     g <- g + geom_segment(aes(x = x.split, y = y.split, xend = max(exp1), yend = y.split), linetype = 2)
   }else{
     g <- g + geom_segment(aes(x = x.split, y = y.split, xend = min(exp1), yend = y.split), linetype = 2)
   }
-  
+
   g <- g + xlab(paste(gene1)) + ylab(paste(gene2))
   print(g)
 }
@@ -447,14 +433,14 @@ get_split_pos <- function(scrna, gene, id, step = 0.01) {
                            margin <- c())
   data.id <- data.mat.surf[data.mat.surf$id == id,]
   data.other <- data.mat.surf[data.mat.surf$id != id,]
-  
+
   for (x.val in quantile(data.id$exp[data.id$id == id], seq(0.001, 0.999, step))) {
     x.factor <- length(data.other$id)/length(data.id$id)
     # tp <- sum(data.id$exp >= x.val)
     # fp <- sum(data.other$exp >= x.val)
     tn <- sum(data.other$exp < x.val)
     fn <- sum(data.id$exp < x.val)
-    
+
     if (length(data.id$id) <= length(data.other$id)) {
       x.margin <- tn - fn*x.factor
     }
@@ -477,14 +463,14 @@ get_split_neg <- function(scrna, gene, id, step = 0.01) {
                            margin <- c())
   data.id <- data.mat.surf[data.mat.surf$id == id,]
   data.other <- data.mat.surf[data.mat.surf$id != id,]
-  
+
   for (x.val in quantile(data.id$exp[data.id$id == id], seq(0.001, 0.999, step))) {
     x.factor <- length(data.other$id)/length(data.id$id)
     # tp <- sum(data.id$exp <= x.val)
     # fp <- sum(data.other$exp <= x.val)
     tn <- sum(data.other$exp > x.val)
     fn <- sum(data.id$exp > x.val)
-    
+
     if (length(data.id$id) <= length(data.other$id)) {
       x.margin <- tn - fn*x.factor
     }
@@ -506,17 +492,17 @@ marker_stepbystep <- function(scrna, cellgroup, depth = 2, geneset){
   len.id <- sum(scrna@active.ident == cellgroup)
   len.other <- sum(scrna@active.ident != cellgroup)
   df.split <- data.frame()
-  
+
   for (variable in seq(depth)) {
     markers <- FindMarkers(scrna, ident.1 = cellgroup, features = geneset)
     markers <- subset(markers, p_val_adj < 0.05)
-    
+
     markers.pos <- subset(markers, avg_log2FC > 0)
     markers.neg <- subset(markers, avg_log2FC < 0)
-    
+
     #geneset <- intersect(rownames(markers), geneset)
     gene.prauc <- data.frame()
-    
+
     for (genes in rownames(markers.pos)) {
       de <- data.frame(genes, get_split_pos(scrna, genes, cellgroup, step))
       names(de)<-c("gene", "split.value","filtered.adj", "direction")
@@ -528,9 +514,9 @@ marker_stepbystep <- function(scrna, cellgroup, depth = 2, geneset){
       gene.prauc <- rbind(gene.prauc, de)
     }
     gene.prauc <- gene.prauc[order(gene.prauc$filtered.adj, decreasing = T),]
-    
+
     df.split <- rbind(df.split, gene.prauc[1,])
-    
+
     left.cells <- GetCellNames(scrna, gene.prauc[1,1], gene.prauc[1,2], gene.prauc[1,4])
     scrna <- subset(scrna, cells = left.cells)
   }
