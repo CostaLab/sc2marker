@@ -67,7 +67,8 @@ get_exprs_frac <- function(x.df, step = 100){
 #' Compute PRAUC for positive markers
 #' @param scrna seurat obj to be used
 #' @param gene gene to test
-#' @param ge interested cell group
+#' @param id interested cell group
+#' @param step quantile steps
 #' @return PRAUC of input gene
 #'
 
@@ -96,6 +97,13 @@ get_gene_PRAUC_pos <- function(scrna, gene, id, step = 0.01) {
   return(PRAUC)
 }
 
+#' Compute PRAUC for negetive markers
+#' @param scrna seurat obj to be used
+#' @param gene gene to test
+#' @param id interested cell group
+#' @param step quantile steps
+#' @return PRAUC of input gene
+#'
 get_gene_PRAUC_neg <- function(scrna, gene, id, step = 0.01) {
   data.mat.surf <- data.frame(exp = scrna@assays$RNA@data[gene,],
                               id = as.character(makeid(scrna, id)@active.ident))
