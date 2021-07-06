@@ -44,9 +44,10 @@ is_contigous_true_df <- function(is_sigs){
 }
 
 #' Reset cell group idents
-#'
-#'
-#'
+#' @param scrna seurat obj to be used
+#' @param id interested cell group
+#' @param panel Ident panel in seurat obj meta.data
+#' @return seurat obj with re-set Idents
 #'
 makeid <- function(scrna, id, panel = "seurat_clusters"){
   Idents(scrna) <- "seurat_clusters"
@@ -62,6 +63,13 @@ get_exprs_frac <- function(x.df, step = 100){
   # seq = quantile(x.seq, seq(0.01, 0.99, step))
   return(seq)
 }
+
+#' Compute PRAUC for positive markers
+#' @param scrna seurat obj to be used
+#' @param gene gene to test
+#' @param ge interested cell group
+#' @return PRAUC of input gene
+#'
 
 get_gene_PRAUC_pos <- function(scrna, gene, id, step = 0.01) {
   data.mat.surf <- data.frame(exp = scrna@assays$RNA@data[gene,],
