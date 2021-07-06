@@ -1,0 +1,407 @@
+---
+title: "Cell marker identification with seurat samples"
+author: "Ronghui"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: yes
+    toc_depth: 3
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+---
+
+```{r setup, include=FALSE}
+# .libPaths("~/R/x86_64-pc-linux-gnu-library/3.6")
+library(Seurat)
+library(dplyr, lib.loc = "/home/ronghui/anaconda3/envs/r4-real/lib/R/library")
+library(ggplot2, lib.loc = "/home/ronghui/anaconda3/envs/r4-real/lib/R/library")
+suppressMessages(library(cowplot, lib.loc = "/home/ronghui/anaconda3/envs/r4-real/lib/R/library"))
+suppressMessages(library(randomForest, lib.loc = "/home/ronghui/anaconda3/envs/r4-real/lib/R/library"))
+suppressMessages(library(patchwork))
+suppressMessages(library(data.table))
+suppressMessages(library(MLmetrics))
+library(scMarkerDetect)
+```
+
+
+
+```{r pressure, echo=FALSE, fig.height=9, fig.width=12}
+markers.allset <- read.csv(file=file.path("/home/ronghui/project/dbmaker/gene_db/proteinatlas.ihc.csv"))[ ,1]
+
+# markers.allset <- read.csv(file=file.path("/home/ronghui/project/dbmaker/abcam.tr.csv"))[ ,1]
+# markers.allset <- unique(markers.allset)
+# 
+# markers.allset <- gsub(" ", "", markers.allset)
+# # markers.allset <- gsub("-", "", markers.allset)
+# 
+# 
+# cbmc.rna <- as.sparse(read.csv(file = "GSE100866_CBMC_8K_13AB_10X-RNA_umi.csv.gz", sep = ",",
+#     header = TRUE, row.names = 1))
+# 
+# cbmc.rna <- CollapseSpeciesExpressionMatrix(cbmc.rna)
+# 
+# 
+# markers.allset <- intersect(rownames(cbmc.rna) ,markers.allset)
+# 
+# length(markers.allset)
+
+markers.allset <- c(as.character(markers.allset))
+markers.allset <- unique(markers.allset)
+```
+
+# Seurat example
+
+```{r}
+# DefaultAssay(cbmc) <- "RNA"
+# DefaultAssay(cbmc)
+# 
+# cbmc <- NormalizeData(cbmc)
+# cbmc <- FindVariableFeatures(cbmc)
+# cbmc <- ScaleData(cbmc)
+# cbmc <- RunPCA(cbmc, verbose = FALSE)
+# cbmc <- FindNeighbors(cbmc, dims = 1:30)
+# cbmc <- FindClusters(cbmc, resolution = 0.8, verbose = FALSE)
+# cbmc <- RunUMAP(cbmc, dims = 1:30)
+
+load("/home/ronghui/project/dbmaker/seurat.cbmc.rds")
+DimPlot(cbmc, label = TRUE)
+```
+
+
+
+```{r}
+# # Normalize ADT data,
+# DefaultAssay(cbmc) <- "ADT"
+# cbmc <- NormalizeData(cbmc, normalization.method = "CLR", margin = 2)
+# DefaultAssay(cbmc) <- "RNA"
+# 
+# # Note that the following command is an alternative but returns the same result
+# cbmc <- NormalizeData(cbmc, normalization.method = "CLR", margin = 2, assay = "ADT")
+
+# Now, we will visualize CD14 levels for RNA and protein By setting the default assay, we can
+# visualize one or the other
+DefaultAssay(cbmc) <- "ADT"
+p1 <- FeaturePlot(cbmc, "CD19", cols = c("lightgrey", "darkgreen")) + ggtitle("CD19 protein")
+DefaultAssay(cbmc) <- "RNA"
+p2 <- FeaturePlot(cbmc, "CD19") + ggtitle("CD19 RNA")
+
+# place plots side-by-side
+p1 | p2
+```
+
+# identify best markers
+
+```{r warning=F}
+Idents(cbmc) <- "seurat_clusters"
+
+markers <- FindMarkers(cbmc, ident.1 = "6", features = intersect(rownames(cbmc[["RNA"]]), markers.allset))
+markers <- markers[order(markers$avg_log2FC, decreasing = T),]
+
+# Idents(cbmc) <- "seurat_clusters"
+markers.i <- scMarkerDetect::identify_single_marker(cbmc, "6", markers.allset)
+```
+
+## Seurat DE top markers
+
+```{r}
+markers[1:9,]
+```
+
+## PRAUC top markers
+
+```{r}
+markers.i[1:9,]
+```
+
+```{r}
+
+plot_combine_PRAUC(cbmc, "CD79B", "CD74", "6", return.obj = T) + ggtitle(label = "PRAUC")
+get_PRAUC_matrix_combine_markers(cbmc,  "FAM129C", "COL19A1", "6")
+plot_combine_PRAUC(cbmc, "FAM129C", "COL19A1", "6", return.obj = T) + ggtitle(label = "COMET combine markers")
+
+
+COMET.combine <- data.frame(cluster1 = c("CORO1B",	"LTB"),
+                            )
+
+seq(0,10)
+x.cluster <- 5
+for (x.cluster in seq(1,6)) {
+  genes <- read.csv(paste("data/cluster_", x.cluster, "_pair_final_ranking.csv", sep = ""))
+  genes <- c(genes[1,2], genes[1,3])
+  genes <- gsub("_negation", "", genes)
+  print(plot_combine_PRAUC(cbmc, genes[1], genes[2], x.cluster, return.obj = T) + ggtitle(label = "COMET combine markers"))
+  
+  df.split <- makers.prauc[[x.cluster]]
+  genes <- c(df.split[1,1], df.split[2,1])
+  print(plot_combine_PRAUC(cbmc, genes[1], genes[2], x.cluster, return.obj = T) + ggtitle(label = "PRAUC"))
+}
+
+makers.prauc <- list()
+for (x.cluster in seq(1,6)) {
+  genes <- read.csv(paste("data/cluster_", x.cluster, "_pair_final_ranking.csv", sep = ""))
+  genes <- c(genes[1,2], genes[1,3])
+  plot_combine_PRAUC(cbmc, genes[1], genes[2], x.cluster, return.obj = T) + ggtitle(label = "COMET combine markers")
+  
+  df.split <- marker_stepbystep(cbmc, x.cluster, depth = 2, geneset = markers.allset)
+  makers.prauc[[x.cluster]] <- df.split
+  genes <- c(df.split[1,1], genes[2,1])
+  plot_combine_PRAUC(cbmc, genes[1], genes[2], x.cluster, return.obj = T) + ggtitle(label = "PRAUC")
+}
+
+makers.prauc[[2]]
+
+cbmc1 <- subset(x = cbmc, subset = RPS18 > 4.751374 & CD3E > 1.783727)# & MS4A1 > 1.095634)
+cbmc2 <- subset(x = cbmc, subset = RPL34 > get_split.1(cbmc, "RPL34", "2")$x.val & SOX4 > get_split.1(cbmc, "SOX4", "2")$x.val)# & RPS18 > 4.544471)
+
+# cbmc2 <- subset(x = cbmc, subset = FCRLA > 0.9311952 & `HLA-DRA` > 3.580194)# & RPS18 > 4.544471)
+
+tp <- sum(cbmc1@active.ident == "2")
+fp <- sum(cbmc1@active.ident != "2")
+tp/(tp+fp)
+
+tp <- sum(cbmc2@active.ident == "2")
+fp <- sum(cbmc2@active.ident != "2")
+tp/(tp+fp)
+
+
+sum(cbmc1@active.ident == "2")/sum(cbmc@active.ident == "2")
+sum(cbmc2@active.ident == "2")/sum(cbmc@active.ident == "2")
+
+for (x.cluster in seq(1,6)) {
+  genes <- read.csv(paste("data/cluster_", x.cluster, "_pair_final_ranking.csv", sep = ""))
+  genes <- c(genes[1,2], genes[1,3])
+  genes <- gsub("_negation", "", genes)
+  
+  print(plot_combine_PRAUC(cbmc, genes[1], genes[2], x.cluster, return.obj = T) + ggtitle(label = "COMET combine markers"))
+  
+  df.split <- makers.prauc[[x.cluster]]
+  genes <- c(df.split[1,1], df.split[2,1])
+  print(plot_combine_PRAUC(cbmc, genes[1], genes[2], x.cluster, return.obj = T) + ggtitle(label = "PRAUC"))
+}
+
+plot_combine_PRAUC(cbmc, "FAM129C", "COL19A1", "6", return.obj = T) + ggtitle(label = "PRAUC")
+df <- get_PRAUC_matrix_combine_markers(cbmc,  "FAM129C", "COL19A1", "6")
+
+
+```
+
+
+Compare top 9 marker from DE and prauc based method
+
+# Plot PRAUC of TOP 9 markers from DE and prauc based ranking
+
+```{r}
+Idents(cbmc) <- "seurat_clusters"
+
+g <- ggplot()
+for (genes in intersect(rownames(markers)[1:9], markers.i$gene[1:9])) {
+  df <- get_gene_PRAUC_matrix(cbmc, genes, "6", step = 0.01)
+  df$gene = as.factor(genes)
+  df$method = as.factor("Seurat and PRAUC")
+  g <- g + geom_line(df, mapping = aes(x.rec, x.pre, color = method))
+}
+
+for (genes in setdiff(rownames(markers)[1:9], markers.i$gene[1:9])) {
+  df <- get_gene_PRAUC_matrix(cbmc, genes, "6", step = 0.01)
+  df$gene = as.factor(genes)
+  df$method = as.factor("Seurat")
+  g <- g + geom_line(df, mapping = aes(x.rec, x.pre, color = method))
+}
+
+for (genes in setdiff(markers.i$gene[1:9], rownames(markers)[1:9])) {
+  df <- get_gene_PRAUC_matrix(cbmc, genes, "6", step = 0.01)
+  df$gene = as.factor(genes)
+  df$method = as.factor("PRAUC")
+  g <- g + geom_line(df, mapping = aes(x.rec, x.pre, color = method))
+}
+
+g
+
+```
+
+# Plot PRAUC of TOP 12 markers from COMET  and prauc ranking
+
+```{r fig.height=6, fig.width=8}
+Idents(cbmc) <- "seurat_clusters"
+
+COMET.markers <- c("MS4A1", "VPREB3", "TCL1A", "FCRLA", "CD19", "BANK1", "HLA-DOB", "CD79B", "CD22", "FAM129C", "COL19A1", "HLA-DQA1")
+
+g <- ggplot()
+for (genes in intersect(COMET.markers, markers.i$gene[1:12])) {
+  df <- get_gene_PRAUC_matrix(cbmc, genes, "6", step = 0.005)
+  df$gene = as.factor(genes)
+  df$method = as.factor("COMET and PRAUC")
+  g <- g + geom_line(df, mapping = aes(x.rec, x.pre, color = method))
+}
+
+for (genes in setdiff(COMET.markers, markers.i$gene[1:12])) {
+  df <- get_gene_PRAUC_matrix(cbmc, genes, "6", step = 0.005)
+  df$gene = as.factor(genes)
+  df$method = as.factor("COMET")
+  g <- g + geom_line(df, mapping = aes(x.rec, x.pre, color = method))
+}
+
+for (genes in setdiff(markers.i$gene[1:12], COMET.markers)) {
+  df <- get_gene_PRAUC_matrix(cbmc, genes, "6", step = 0.005)
+  df$gene = as.factor(genes)
+  df$method = as.factor("PRAUC")
+  g <- g + geom_line(df, mapping = aes(x.rec, x.pre, color = method))
+}
+
+g + xlab("Recall") + ylab("Precision")
+
+```
+
+
+# Show TOP 9 markers from DE analysis
+
+Show TOP 9 markers from DE analysis
+
+```{r fig.width=9, fig.height=9}
+cbmc <- makeid(cbmc,"6")
+VlnPlot(cbmc, features = rownames(markers)[1:9])
+
+```
+
+# TOP 9 markers from PRAUC ranking
+
+Show TOP 9 markers from PRAUC ranking
+
+```{r fig.width=9, fig.height=9}
+VlnPlot(cbmc, features = markers.i$gene[1:9])
+```
+
+# Find best line to split cells
+
+```{r fig.width=9, fig.height=9}
+cbmc <- makeid(cbmc, "6")
+
+plots = list()
+
+for (gene in markers.i$gene[1:9]) {
+  plots[[gene]] <- VlnPlot(cbmc, features = gene) + geom_hline(yintercept=get_split.1(cbmc, gene, "6")$x.val, linetype = 1)
+}
+
+plot_grid(plotlist=plots, ncol=3)
+```
+
+
+
+# Grid Plot of combine 2 markers
+
+```{r}
+plot_grid_2(cbmc, "TCL1A", "CD79B", "6")
+```
+
+
+# Umap plot of combine markers
+
+```{r fig.height = 9, fig.width=12}
+Idents(cbmc) <- "seurat_clusters"
+plot_marker_c_umap(cbmc, "TCL1A", "CD79B", "6")
+```
+
+# step by step
+
+```{r}
+
+df.split <- marker_stepbystep(cbmc, "6", depth = 3, geneset = markers.allset)
+df.split1 <- marker_stepbystep(cbmc, "6", depth = 3, geneset = markers.allset)
+
+plot_filter_stepbystep_first2(cbmc, df.split, "6")
+plot_filter_stepbystep_first2(cbmc, df.split1, "6")
+
+get_split.1(cbmc, "HLA-DRA", "6")
+
+  
+cbmc1 <- subset(x = cbmc, subset = TCL1A > 1.872265 & CD79B > 1.553028 & MS4A1 > 1.095634)
+cbmc1 <- subset(x = cbmc, subset = CD74 > 4.077197 & CD79B > 1.68253)# & RPS18 > 4.544471)
+
+cbmc2 <- subset(x = cbmc, subset = FCRLA > 0.9311952 & `HLA-DRA` > 3.580194)# & RPS18 > 4.544471)
+
+tp <- sum(cbmc1@active.ident == "6")
+fp <- sum(cbmc1@active.ident != "6")
+tp/(tp+fp)
+
+tp <- sum(cbmc2@active.ident == "6")
+fp <- sum(cbmc2@active.ident != "6")
+tp/(tp+fp)
+
+
+sum(cbmc1@active.ident == "6")/sum(cbmc@active.ident == "6")
+sum(cbmc2@active.ident == "6")/sum(cbmc@active.ident == "6")
+
+
+TP = sum(cbmc1@active.ident == "6")
+```                                                                                                                                                                                               
+
+```{r fig.height=8, fig.width=8}
+df.split.5 <- marker_stepbystep(cbmc, "5", depth = 3, geneset = markers.allset)
+```
+
+
+
+
+
+```{r fig.height=9, fig.width=9}
+
+
+grid_plot(cbmc, df.split.5, "5")
+
+
+
+plot_filter_combination_first2(cbmc, df.split.5, "5")
+
+scrna <- cbmc
+id <- "5"
+# FTH1	UBA52
+
+  df <- data.frame(exp1 = scrna@assays$RNA@data["FTH1",],
+                   exp2 = scrna@assays$RNA@data["UBA52",],
+                   ID = as.character(makeid(scrna, id)@active.ident))
+  
+  x.split <- df.split$split.value[1]
+  y.split <- df.split$split.value[2]
+  
+  ggplot(df)+
+    geom_point(aes(exp1, exp2, color = ID))
+  
+  get_split_neg(cbmc, "FTH1" , "5")
+  get_split_neg(cbmc, "UBA52" , "5")
+
+```
+
+```{r}
+library(available) # Check if the Title of a Package is Available, 
+                   # Appropriate and Interesting
+# Check for potential names
+available::suggest("Easily extract information about your sample")
+```
+
+
+
+
+
+```{r}
+Idents(cbmc) <- "seurat_clusters"
+DefaultAssay(cbmc) <- "RNA"
+matrix_cometsc <- Seurat::GetAssayData(cbmc) #gets the normalized count matrix
+
+length(intersect(rownames(matrix_cometsc), markers.allset))
+# 
+write.table(as.matrix(matrix_cometsc), file= "seurat.markers.txt", row.names=TRUE, col.names=TRUE, sep = "\t", quote = FALSE)
+# 
+umap_cometsc <- Embeddings(scrna, reduction = "umap")
+write.table(umap_cometsc, file="seurat.vis.txt", row.names=TRUE, col.names=FALSE, sep = "\t", quote = FALSE)
+# 
+colnames(scrna@meta.data)
+Idents(scrna) <- "seurat_clusters"
+cluster_cometsc <- noquote(as.matrix(Idents(scrna))) # Get the active cluster identities. Should be numbers. COMET does not take Non-Number cluster names.
+# 
+write.table(cluster_cometsc, file = "clusters.txt" , row.names=TRUE, col.names=FALSE, sep = "\t", quote = FALSE)
+# 
+write.table(unique(markers.allset), file = "genes.txt", col.names = F, row.names = F, quote = F)
+```
+
+
