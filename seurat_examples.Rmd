@@ -114,7 +114,7 @@ markers[1:9,]
 markers.i[1:9,]
 ```
 
-```{r}
+```{r fig.width=10, fig.height=8}
 
 plot_combine_PRAUC(cbmc, "VPREB3", "CD79B", "6", return.obj = T) + ggtitle(label = "PRAUC")
 plot_combine_PRAUC(cbmc, "FAM129C", "COL19A1", "6", return.obj = T) + ggtitle(label = "COMET combine markers")
@@ -179,20 +179,13 @@ for (x.cluster in seq(1,6)) {
   print(plot_combine_PRAUC(cbmc, genes[1], genes[2], x.cluster, return.obj = T) + ggtitle(label = "PRAUC"))
 }
 
-plot_combine_PRAUC
 
 plot_combine_PRAUC(cbmc, "FAM129C", "COL19A1", "6", return.obj = T) + ggtitle(label = "PRAUC")
 df <- get_PRAUC_matrix_combine_markers(cbmc,  "FAM129C", "COL19A1", "6")
 
 
-markers.i
-
-Detect_combine_markers <- function(scrna, id, geneset, step = 0.01){
-  
-}
-
 makers.prauc <- list()
-x.cluster <- 5
+x.cluster <- 2
 Idents(cbmc) <- "seurat_clusters"
 for (x.cluster in seq(1,4)) {
   genes <- read.csv(paste("/home/ronghui/project/dbmaker/data/cluster_", x.cluster, "_pair_final_ranking.csv", sep = ""))
@@ -206,39 +199,134 @@ for (x.cluster in seq(1,4)) {
   print(plot_combine_PRAUC(cbmc, genes[1], genes[2], x.cluster, return.obj = T) + ggtitle(label = "PRAUC"))
 }
 
-
 df.split <- identify_single_marker(cbmc, "2", markers.allset)
 
-id <- "5"
-
-df <- data.frame(exp1 = scrna@assays$RNA@data["FTH1",],
-                 exp2 = scrna@assays$RNA@data["UBA52",],
-                 ID = as.character(makeid(scrna, id)@active.ident))
-
-markers.5 <- 
-  
-
-ggplot(df)+
-  geom_point(aes(exp1, exp2, color = ID))
-
-df <- data.frame(exp1 = scrna@assays$RNA@data["MYL3",],
-                 exp2 = scrna@assays$RNA@data["HIST2H2AB",],
-                 ID = as.character(makeid(scrna, id)@active.ident))
-  
-
-ggplot(df)+
-  geom_point(aes(exp1, exp2, color = ID))
-
-
-
-
-data = data.frame(x.plot=rep(seq(1,5),10),y.plot=rnorm(50))
-
-ggplot(df,aes(exp1, exp2)) +
-  stat_summary(fun.data=mean_cl_normal) + 
-  geom_smooth(method='lm', formula= y~x)
 
 df.split.2 <- marker_stepbystep(cbmc, "2", depth = 2, geneset = markers.allset)
+x.split <- markers.i.5
+markers.i.5$gene
+scrna <- cbmc
+Detect_combine_markers <- function(scrna, id, geneset, step = 0.1){
+  x.split <- identify_single_marker(scrna, id, markers.allset, step = 0.1)
+  x.split <- subset(df.split, prauc > 0.2)
+  x.split <- marker_stepbystep(cbmc, "5", depth = 2, geneset = markers.i.5$gene)
+  gene.combn <- t(combn(x.split$gene, 2))
+  gene.combn.prauc <- data.frame()
+
+  for (gene.iter in 1:length(gene.combn[,1])) {
+    genes <- gene.combn[gene.iter,]
+    gene1 <- genes[1]
+    gene2 <- genes[2]
+    if (x.split[x.split$gene == gene1, ]$direction == "+") {
+      if (x.split[x.split$gene == gene2, ]$direction == "+") {
+        gene.prauc <- get_PRAUC_matrix_combine_markers(scrna = scrna, gene1 = gene1, gene2 = gene2, id = id, step = 0.01)
+        
+      }else{
+        gene.prauc <- get_PRAUC_matrix_combine_markers_neg_pos(scrna = scrna, gene1 = gene1, gene2 = gene2, id = id, step = 0.01)
+      }
+    }else{
+      if (x.split[x.split$gene == gene2, ]$direction == "+") {
+        gene.prauc <- get_PRAUC_matrix_combine_markers_neg_pos(scrna = scrna, gene1 = gene2, gene2 = gene1, id = id, step = 0.01)
+      }else{
+        gene.prauc <- get_PRAUC_matrix_combine_markers_neg(scrna = scrna, gene1 = gene1, gene2 = gene2, id = id, step = 0.01)
+      }
+    }
+    PRAUC <- Area_Under_Curve(gene.prauc$x.rec,  gene.prauc$x.pre,
+                              method = "trapezoid", na.rm = TRUE)
+    de <- data.frame(gene1, gene2, x.split[x.split$gene == gene1, ]$direction, x.split[x.split$gene == gene2, ]$direction, PRAUC)
+    colnames(de) <- c("Gene1", "Gene2", "Direction1", "Direction2", "PRAUC")
+    gene.combn.prauc <- rbind(gene.combn.prauc, de)
+  }
+  return(gene.combn.prauc)
+}
+
+  x.df <- get_PRAUC_matrix_combine_markers_neg_pos(scrna = scrna, gene1 = "MYL3", gene2 = "TMSB4X", id = id, step = 0.01)
+
+  ggplot() + geom_line(x.df, mapping = aes(x.rec, x.pre)) + xlim(c(0,1)) + ylim(c(0,1))
+  
+  x.df <- get_PRAUC_matrix_combine_markers_neg(scrna = scrna, gene1 = "TMSB4X", gene2 = "MT-CO2", id = id, step = 0.01)
+
+  ggplot() + geom_line(x.df, mapping = aes(x.rec, x.pre)) + xlim(c(0,1)) + ylim(c(0,1))
+  
+  x.df <- get_PRAUC_matrix_combine_markers(scrna = scrna, gene1 = "HIST2H2AB", gene2 = "MYL3", id = id, step = 0.01)
+
+  ggplot() + geom_line(x.df, mapping = aes(x.rec, x.pre)) + xlim(c(0,1)) + ylim(c(0,1))
+  
+
+
+get_PRAUC_matrix_combine_markers_neg_pos <- function(scrna, gene1,  gene2, id, step = 0.01){
+  data.mat.surf <- data.frame(gene1 = scrna@assays$RNA@data[gene1,],
+                              gene2 = scrna@assays$RNA@data[gene2,],
+                              id = as.character(makeid(scrna, id)@active.ident))
+  gene.prauc <- data.frame(x.pre <- c(),
+                           x.rec <- c())
+  data.id <- data.mat.surf[data.mat.surf$id == id,]
+  data.other <- data.mat.surf[data.mat.surf$id != id,]
+  
+  gene1.min <- min(data.id$gene1)
+  gene2.max <- max(data.id$gene2)
+  gene1.range <- max(data.id$gene1) - gene1.min
+  gene2.range <- gene2.max - min(data.id$gene2)
+
+  for (x.seq in seq(0, 1, step)) {
+
+    x.val <- gene1.min + x.seq*gene1.range
+    y.val <- gene2.max - x.seq*gene2.range
+
+    # x.val = quantile(data.id$gene1, x.seq)
+    # y.val = quantile(data.id$gene2, x.seq)
+
+    tp <- sum(data.id$gene1 >= x.val & data.id$gene2 <= y.val)
+    fp <- sum(data.other$gene1 >= x.val & data.other$gene2 <= y.val)
+    # tn <- sum(data.other$gene1 < x.val | data.other$gene2 < y.val)
+    fn <- sum(data.id$gene1 < x.val | data.id$gene2 > y.val)
+
+    x.pre <- tp/(tp + fp)
+    x.rec <- tp/(tp + fn)
+    de <- data.frame(x.pre, x.rec)
+    gene.prauc <- rbind(gene.prauc, de)
+  }
+  gene.prauc <- gene.prauc[complete.cases(gene.prauc), ]
+  gene.prauc <- gene.prauc[order(gene.prauc$x.rec), ]
+  return(gene.prauc)
+}
+
+    gene1 <- "MYL3"
+    gene2 <- "HIST2H2AB"
+
+t(combn(x.split$gene, 2))[1,]
+
+
+grid_plot(cbmc, x.split, "5")
+
+df <- data.frame(exp1 = scrna@assays$RNA@data["MYL3",],
+                 exp2 = scrna@assays$RNA@data["FTH1",],
+                 ID = as.character(makeid(scrna, id)@active.ident))
+  
+
+ggplot(df)+
+  geom_point(aes(exp1, exp2, color = ID))
+
+
+
+Idents(cbmc) <- "seurat_clusters"
+Combine_marker_umap(cbmc, x.split, "5")
+
+gene.combn.prauc[order(gene.combn.prauc$PRAUC, decreasing = T),]
+
+
+  x.df <- get_PRAUC_matrix_combine_markers_neg_pos(scrna = scrna, gene1 = "MYL3", gene2 = "TMSB4X", id = id, step = 0.01)
+
+  ggplot() + geom_line(x.df, mapping = aes(x.rec, x.pre)) + xlim(c(0,1)) + ylim(c(0,1))
+  
+  x.df <- get_PRAUC_matrix_combine_markers_neg_pos(scrna = scrna, gene1 = "MYL3", gene2 = "FTH1", id = id, step = 0.01)
+
+  ggplot() + geom_line(x.df, mapping = aes(x.rec, x.pre)) + xlim(c(0,1)) + ylim(c(0,1))
+  
+  x.df <- get_PRAUC_matrix_combine_markers_neg_pos(scrna = scrna, gene1 = "TUSC3", gene2 = "TMSB4X", id = id, step = 0.01)
+
+  ggplot() + geom_line(x.df, mapping = aes(x.rec, x.pre)) + xlim(c(0,1)) + ylim(c(0,1))
+
 ```
 
 
@@ -271,51 +359,68 @@ plot_combine_PRAUC_neg <- function(scrna, gene1, gene2, id, step = 0.01, return.
   }
 }
 
-get_PRAUC_matrix_combine_markers_neg <- function(scrna, gene1,  gene2, id, step = 0.01){
-  data.mat.surf <- data.frame(gene1 = scrna@assays$RNA@data[gene1,],
-                              gene2 = scrna@assays$RNA@data[gene2,],
-                              id = as.character(makeid(scrna, id)@active.ident))
-  gene.prauc <- data.frame(x.pre <- c(),
-                           x.rec <- c())
-  data.id <- data.mat.surf[data.mat.surf$id == id,]
-  data.other <- data.mat.surf[data.mat.surf$id != id,]
-
-  for (x.seq in seq(0, 1, step)) {
-
-    # x.val <- gene1.min + x.seq*gene1.range
-    # y.val <- gene2.min + x.seq*gene2.range
-
-    x.val = quantile(data.id$gene1, x.seq)
-    y.val = quantile(data.id$gene2, x.seq)
-
-    tp <- sum(data.id$gene1 < x.val & data.id$gene2 < y.val)
-    fp <- sum(data.other$gene1 < x.val & data.other$gene2 < y.val)
-    # tn <- sum(data.other$gene1 < x.val | data.other$gene2 < y.val)
-    fn <- sum(data.id$gene1 >= x.val | data.id$gene2 >= y.val)
-
-    x.pre <- tp/(tp + fp)
-    x.rec <- tp/(tp + fn)
-    de <- data.frame(x.pre, x.rec)
-    gene.prauc <- rbind(gene.prauc, de)
-  }
-  gene.prauc <- gene.prauc[complete.cases(gene.prauc), ]
-  gene.prauc <- gene.prauc[order(gene.prauc$x.rec), ]
-  return(gene.prauc)
-}
-
-VlnPlot(cbmc, "RPS18")
-VlnPlot(cbmc, "FOS")
-
-Idents(cbmc) <- "seurat_clusters"
-
-match("UBA52", markers.allset)
 markers.i.5 <- identify_single_marker(cbmc, "5", markers.allset)
 markers <- FindMarkers(cbmc, ident.1 = "5", features = intersect(rownames(cbmc[["RNA"]]), markers.allset))
 markers.1 <- subset(markers, p_val_adj < 0.05)
 markers.2 <- subset(markers.1, avg_log2FC < 0)
 
-markers["UBA52",]
 ```
+
+```{r}
+print(plot_combine_PRAUC_neg(cbmc, "FTH1", "UBA52", "5", return.obj = T) + ggtitle(label = "PRAUC"))
+# print(plot_combine_PRAUC_neg(cbmc, "RPS9", "RPS12", "5", return.obj = T) + ggtitle(label = "PRAUC"))
+print(plot_combine_PRAUC_neg(cbmc, "RPLP2", "UBA52", "5", return.obj = T) + ggtitle(label = "PRAUC"))
+print(plot_combine_PRAUC_neg(cbmc, "FTH1", "RPL8", "5", return.obj = T) + ggtitle(label = "PRAUC"))
+
+df <- data.frame(exp1 = scrna@assays$RNA@data["PTTG2",],
+                 exp2 = scrna@assays$RNA@data["TUSC3",],
+                 ID = as.character(makeid(cbmc, "5")@active.ident))
+
+
+ggplot(df)+
+  geom_point(aes(exp1, exp2, color = ID))
+```
+
+
+```{r}
+cbmc.x <- subset(cbmc, idents = "5")
+markers.i.5 <- subset(markers.i.5, prauc > 0.2)
+markers.i.5.n <- markers.i.5[markers.i.5$direction == "-", ]
+markers.i.5.p <- markers.i.5[markers.i.5$direction == "+", ]
+
+x.data.p <- cbmc.x@assays$RNA@data[markers.i.5.p$gene, ]
+x.data.p <- as.data.frame(x.data.p)
+
+x.data.n <- cbmc.x@assays$RNA@data[markers.i.5.n$gene, ]
+x.data.n <- as.data.frame(x.data.n)
+
+x.data.n$max <- apply(x.data.n, 1, max)
+x.data.n <- x.data.n$max - x.data.n
+x.data.n <- x.data.n[, -length(colnames(x.data.n))]
+
+x.data <- rbind(x.data.n, x.data.p)
+
+x.data <- scale(x.data)
+# set.seed(4)
+km.res <- kmeans(x.data, 10)
+
+table(km.res$cluster)
+km.res$cluster
+
+dist(x.data,p=2, method = "minkowski")
+dist(x.data[c("FTH1", "UBA52"),],p=2, method = "maximum")
+dist(x.data[c("FTH1", "UBA52"),],p=2, method = "minkowski")
+
+result <- dist(x.data, method = "euclidean")
+result_hc <- hclust(d = result, method = "ward.D2")
+#进行初步展示
+fviz_dend(result_hc, cex = 0.6, k = 4)
+
+
+x.data <- cbind(x.data, cluster = km.res$cluster)
+
+```
+
 
 
 Compare top 9 marker from DE and prauc based method
@@ -504,19 +609,8 @@ id <- "1"
   get_split_neg(cbmc, "FTH1" , "5")
   get_split_neg(cbmc, "UBA52" , "5")
   
-  
-  
-  seq(min(cbmc@assays$RNA@data["CORO1B",]),max(cbmc@assays$RNA@data["CORO1B",]),(max(cbmc@assays$RNA@data["CORO1B",]) - min(cbmc@assays$RNA@data["CORO1B",]))/100)
-
-```
 
 
-
-
-```{r}
-detect_combine_markers <- function(scrna, id, geneset){
-  
-}
 ```
 
 

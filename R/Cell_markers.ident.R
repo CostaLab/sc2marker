@@ -319,6 +319,42 @@ plot_marker_c_umap <- function(scrna, gene1, gene2, id, step = 0.01){
   plot_grid(p1, p2, p3)
 }
 
+#' UmapPlot based on results from Markers Greedy Search
+#' @param scrna seurat objects
+#' @param df.split results from Greedy Search
+#' @param id cell groups to identify
+#' @return
+#'
+Combine_marker_umap <- function(scrna, df.split, id){
+  idents.c <- Idents(scrna)
+  gene1 <- df.split$gene[1]
+  gene2 <- df.split$gene[2]
+  gene1.split <- df.split$split.value[1]
+  gene2.split <- df.split$split.value[2]
+
+  cells.1 <- GetCellNames(cbmc, gene1, gene1.split, df.split$direction[1])
+  cells.2 <- GetCellNames(cbmc, gene2, gene2.split, df.split$direction[2])
+  cells.1.2 <- intersect(cells.1, cells.2)
+
+  Idents(scrna) <- "other"
+  Idents(scrna, cells = cells.1) <- paste(gene1, "filter")
+  p1 <- UMAPPlot(scrna, cols = c('red', "grey"))
+
+  Idents(scrna) <- "other"
+  Idents(scrna, cells = cells.2) <- paste(gene2, "filter")
+  p2 <- UMAPPlot(scrna, cols = c('blue', "grey"))
+
+  Idents(scrna) <- "other"
+  Idents(scrna, cells = cells.1.2) <- paste(gene1, "+", gene2)
+  p3 <- UMAPPlot(scrna, cols = c('black',  "grey"))
+
+  Idents(scrna) <- idents.c
+  scrna <- makeid(scrna, id)
+  p4 <- UMAPPlot(scrna)
+
+  plot_grid(p1, p2, p3, p4)
+}
+
 
 GetCellNames <- function(scrna, gene, value, direction){
   df <- data.frame(exp = scrna@assays$RNA@data[gene,])
@@ -529,7 +565,11 @@ get_split_pos <- function(scrna, gene, id, step = 0.01) {
   data.id <- data.mat.surf[data.mat.surf$id == id,]
   data.other <- data.mat.surf[data.mat.surf$id != id,]
 
-  for (x.val in quantile(data.id$exp, seq(0.001, 0.999, step))) {
+  x.max <- max(data.id$exp)
+  x.min <- min(data.id$exp)
+  x.num <- 1/step
+
+  for (x.val in seq(x.min, x.max, (x.max - x.min)/x.num)) {
     x.factor <- length(data.other$id)/length(data.id$id)
     # tp <- sum(data.id$exp >= x.val)
     # fp <- sum(data.other$exp >= x.val)
@@ -559,7 +599,12 @@ get_split_neg <- function(scrna, gene, id, step = 0.01) {
   data.id <- data.mat.surf[data.mat.surf$id == id,]
   data.other <- data.mat.surf[data.mat.surf$id != id,]
 
-  for (x.val in quantile(data.id$exp, seq(0.001, 0.999, step))) {
+  x.max <- max(data.id$exp)
+  x.min <- min(data.id$exp)
+  x.num <- 1/step
+
+  for (x.val in seq(x.min, x.max, (x.max - x.min)/x.num)) {
+
     x.factor <- length(data.other$id)/length(data.id$id)
     # tp <- sum(data.id$exp <= x.val)
     # fp <- sum(data.other$exp <= x.val)
@@ -770,4 +815,74 @@ get_split_neg_tp <- function(scrna, gene, id, step = 0.01) {
   x.split <- gene.prauc[1,]
   rownames(x.split) <- paste(gene)
   return(x.split)
+}
+
+
+get_PRAUC_matrix_combine_markers_neg_pos <- function(scrna, gene1,  gene2, id, step = 0.01){
+  data.mat.surf <- data.frame(gene1 = scrna@assays$RNA@data[gene1,],
+                              gene2 = scrna@assays$RNA@data[gene2,],
+                              id = as.character(makeid(scrna, id)@active.ident))
+  gene.prauc <- data.frame(x.pre <- c(),
+                           x.rec <- c())
+  data.id <- data.mat.surf[data.mat.surf$id == id,]
+  data.other <- data.mat.surf[data.mat.surf$id != id,]
+
+  gene1.min <- min(data.id$gene1)
+  gene2.max <- max(data.id$gene2)
+  gene1.range <- max(data.id$gene1) - gene1.min
+  gene2.range <- gene2.max - min(data.id$gene2)
+
+  for (x.seq in seq(0, 1, step)) {
+
+    x.val <- gene1.min + x.seq*gene1.range
+    y.val <- gene2.max - x.seq*gene2.range
+
+    # x.val = quantile(data.id$gene1, x.seq)
+    # y.val = quantile(data.id$gene2, x.seq)
+
+    tp <- sum(data.id$gene1 >= x.val & data.id$gene2 <= y.val)
+    fp <- sum(data.other$gene1 >= x.val & data.other$gene2 <= y.val)
+    # tn <- sum(data.other$gene1 < x.val | data.other$gene2 < y.val)
+    fn <- sum(data.id$gene1 < x.val | data.id$gene2 > y.val)
+
+    x.pre <- tp/(tp + fp)
+    x.rec <- tp/(tp + fn)
+    de <- data.frame(x.pre, x.rec)
+    gene.prauc <- rbind(gene.prauc, de)
+  }
+  gene.prauc <- gene.prauc[complete.cases(gene.prauc), ]
+  gene.prauc <- gene.prauc[order(gene.prauc$x.rec), ]
+  return(gene.prauc)
+}
+
+get_PRAUC_matrix_combine_markers_neg <- function(scrna, gene1,  gene2, id, step = 0.01){
+  data.mat.surf <- data.frame(gene1 = scrna@assays$RNA@data[gene1,],
+                              gene2 = scrna@assays$RNA@data[gene2,],
+                              id = as.character(makeid(scrna, id)@active.ident))
+  gene.prauc <- data.frame(x.pre <- c(),
+                           x.rec <- c())
+  data.id <- data.mat.surf[data.mat.surf$id == id,]
+  data.other <- data.mat.surf[data.mat.surf$id != id,]
+
+  for (x.seq in seq(0, 1, step)) {
+
+    # x.val <- gene1.min + x.seq*gene1.range
+    # y.val <- gene2.min + x.seq*gene2.range
+
+    x.val = quantile(data.id$gene1, x.seq)
+    y.val = quantile(data.id$gene2, x.seq)
+
+    tp <- sum(data.id$gene1 < x.val & data.id$gene2 < y.val)
+    fp <- sum(data.other$gene1 < x.val & data.other$gene2 < y.val)
+    # tn <- sum(data.other$gene1 < x.val | data.other$gene2 < y.val)
+    fn <- sum(data.id$gene1 >= x.val | data.id$gene2 >= y.val)
+
+    x.pre <- tp/(tp + fp)
+    x.rec <- tp/(tp + fn)
+    de <- data.frame(x.pre, x.rec)
+    gene.prauc <- rbind(gene.prauc, de)
+  }
+  gene.prauc <- gene.prauc[complete.cases(gene.prauc), ]
+  gene.prauc <- gene.prauc[order(gene.prauc$x.rec), ]
+  return(gene.prauc)
 }
