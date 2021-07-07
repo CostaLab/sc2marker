@@ -414,7 +414,12 @@ get_split.1 <- function(scrna, gene, id, step = 0.01) {
 }
 
 
-
+#' Detect greedy step by step filters for cell group identification
+#' @param scrna seurat object
+#' @param cellgroup, interested cell group
+#' @param depth how much steps to filter
+#' @param geneset Gene set to be used
+#' @return
 
 marker_stepbystep <- function(scrna, cellgroup, depth = 2, geneset){
   geneset <- intersect(rownames(scrna[["RNA"]]), geneset)
@@ -590,7 +595,6 @@ marker_stepbystep <- function(scrna, cellgroup, depth = 2, geneset, step = 0.01)
     markers.pos <- subset(markers, avg_log2FC > 0)
     markers.neg <- subset(markers, avg_log2FC < 0)
 
-    #geneset <- intersect(rownames(markers), geneset)
     gene.prauc <- data.frame()
 
     for (genes in rownames(markers.pos)) {
@@ -650,15 +654,6 @@ get_PRAUC_matrix_combine_markers <- function(scrna, gene1,  gene2, id, step = 0.
   }
   gene.prauc <- gene.prauc[complete.cases(gene.prauc), ]
   gene.prauc <- gene.prauc[order(gene.prauc$x.rec), ]
-  # if (sum(gene.prauc$x.pre == min(gene.prauc$x.pre)) > 1) {
-  #   small.second.pr <- min( gene.prauc$x.pre[gene.prauc$x.pre!=min(gene.prauc$x.pre)])
-  #   small.second.recall <- gene.prauc$x.rec[gene.prauc$x.pre == small.second.pr]
-  #   x.add <- data.frame(min(gene.prauc$x.pre), small.second.recall)
-  #   names(x.add) <- names(gene.prauc)
-  #   gene.prauc <- rbind(gene.prauc, x.add)
-  # }
-  # PRAUC <- Area_Under_Curve(gene.prauc$x.rec,  gene.prauc$x.pre,
-  #                           method = "trapezoid", na.rm = TRUE)
   return(gene.prauc)
 }
 
