@@ -191,9 +191,130 @@ Detect_combine_markers <- function(scrna, id, geneset, step = 0.01){
   
 }
 
+makers.prauc <- list()
+x.cluster <- 5
+Idents(cbmc) <- "seurat_clusters"
+for (x.cluster in seq(1,4)) {
+  genes <- read.csv(paste("/home/ronghui/project/dbmaker/data/cluster_", x.cluster, "_pair_final_ranking.csv", sep = ""))
+  genes <- c(genes[1,2], genes[1,3])
+  print(plot_combine_PRAUC(cbmc, genes[1], genes[2], x.cluster, return.obj = T) + ggtitle(label = "COMET combine markers"))
+
+  # df.split <- identify_single_marker(cbmc, x.cluster, markers.allset)
+  # makers.prauc[[x.cluster]] <- df.split
+  df.split <- makers.prauc[[x.cluster]]
+  genes <- c(df.split$gene[1],df.split$gene[2])
+  print(plot_combine_PRAUC(cbmc, genes[1], genes[2], x.cluster, return.obj = T) + ggtitle(label = "PRAUC"))
+}
+
+
+df.split <- identify_single_marker(cbmc, "2", markers.allset)
+
+id <- "5"
+
+df <- data.frame(exp1 = scrna@assays$RNA@data["FTH1",],
+                 exp2 = scrna@assays$RNA@data["UBA52",],
+                 ID = as.character(makeid(scrna, id)@active.ident))
+
+markers.5 <- 
+  
+
+ggplot(df)+
+  geom_point(aes(exp1, exp2, color = ID))
+
+df <- data.frame(exp1 = scrna@assays$RNA@data["MYL3",],
+                 exp2 = scrna@assays$RNA@data["HIST2H2AB",],
+                 ID = as.character(makeid(scrna, id)@active.ident))
+  
+
+ggplot(df)+
+  geom_point(aes(exp1, exp2, color = ID))
+
+
+
+
+data = data.frame(x.plot=rep(seq(1,5),10),y.plot=rnorm(50))
+
+ggplot(df,aes(exp1, exp2)) +
+  stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm', formula= y~x)
+
+df.split.2 <- marker_stepbystep(cbmc, "2", depth = 2, geneset = markers.allset)
 ```
+
+
+
 ```{r}
-df.split
+df.split.2 <- Detect_combine_markers(cbmc, "2", geneset = markers.allset)
+
+Idents(cbmc)<- "seurat_clusters"
+grid_plot(cbmc, df.split, "5")
+
+cbmc <- makeid(cbmc, "5")
+VlnPlot(cbmc, "MYL3")
+VlnPlot(cbmc, "HIST2H2AB")
+
+VlnPlot(cbmc, "FTH1")
+VlnPlot(cbmc, "UBA52")
+
+print(plot_combine_PRAUC(cbmc, "MYL3", "HIST2H2AB", "5", return.obj = T) + ggtitle(label = "PRAUC"))
+
+print(plot_combine_PRAUC_neg(cbmc, "FTH1", "UBA52", "5", return.obj = T) + ggtitle(label = "PRAUC"))
+print(plot_combine_PRAUC_neg(cbmc, "TMSB4X", "MT-CO2", "5", return.obj = T) + ggtitle(label = "PRAUC"))
+
+plot_combine_PRAUC_neg <- function(scrna, gene1, gene2, id, step = 0.01, return.obj = F){
+  x.df <- get_PRAUC_matrix_combine_markers_neg(scrna, gene1, gene2, id = id, step = step)
+  g <- ggplot() + geom_line(x.df, mapping = aes(x.rec, x.pre)) + xlim(c(0,1)) + ylim(c(0,1))
+  if (!return.obj) {
+    print(g)
+  }else{
+    return(g)
+  }
+}
+
+get_PRAUC_matrix_combine_markers_neg <- function(scrna, gene1,  gene2, id, step = 0.01){
+  data.mat.surf <- data.frame(gene1 = scrna@assays$RNA@data[gene1,],
+                              gene2 = scrna@assays$RNA@data[gene2,],
+                              id = as.character(makeid(scrna, id)@active.ident))
+  gene.prauc <- data.frame(x.pre <- c(),
+                           x.rec <- c())
+  data.id <- data.mat.surf[data.mat.surf$id == id,]
+  data.other <- data.mat.surf[data.mat.surf$id != id,]
+
+  for (x.seq in seq(0, 1, step)) {
+
+    # x.val <- gene1.min + x.seq*gene1.range
+    # y.val <- gene2.min + x.seq*gene2.range
+
+    x.val = quantile(data.id$gene1, x.seq)
+    y.val = quantile(data.id$gene2, x.seq)
+
+    tp <- sum(data.id$gene1 < x.val & data.id$gene2 < y.val)
+    fp <- sum(data.other$gene1 < x.val & data.other$gene2 < y.val)
+    # tn <- sum(data.other$gene1 < x.val | data.other$gene2 < y.val)
+    fn <- sum(data.id$gene1 >= x.val | data.id$gene2 >= y.val)
+
+    x.pre <- tp/(tp + fp)
+    x.rec <- tp/(tp + fn)
+    de <- data.frame(x.pre, x.rec)
+    gene.prauc <- rbind(gene.prauc, de)
+  }
+  gene.prauc <- gene.prauc[complete.cases(gene.prauc), ]
+  gene.prauc <- gene.prauc[order(gene.prauc$x.rec), ]
+  return(gene.prauc)
+}
+
+VlnPlot(cbmc, "RPS18")
+VlnPlot(cbmc, "FOS")
+
+Idents(cbmc) <- "seurat_clusters"
+
+match("UBA52", markers.allset)
+markers.i.5 <- identify_single_marker(cbmc, "5", markers.allset)
+markers <- FindMarkers(cbmc, ident.1 = "5", features = intersect(rownames(cbmc[["RNA"]]), markers.allset))
+markers.1 <- subset(markers, p_val_adj < 0.05)
+markers.2 <- subset(markers.1, avg_log2FC < 0)
+
+markers["UBA52",]
 ```
 
 
