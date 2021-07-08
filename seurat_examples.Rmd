@@ -27,7 +27,7 @@ library(scMarkerDetect)
 
 
 ```{r pressure, echo=FALSE, fig.height=9, fig.width=12}
-markers.allset <- read.csv(file=file.path("/home/ronghui/project/dbmaker/gene_db/proteinatlas.ihc.csv"))[ ,1]
+markers.allset <- read.csv(file=file.path("/home/ronghui/project/scMarkerDetect/gene_db/proteinatlas.ihc.csv"))[ ,1]
 
 # markers.allset <- read.csv(file=file.path("/home/ronghui/project/dbmaker/abcam.tr.csv"))[ ,1]
 # markers.allset <- unique(markers.allset)
@@ -90,334 +90,26 @@ p2 <- FeaturePlot(cbmc, "CD19") + ggtitle("CD19 RNA")
 p1 | p2
 ```
 
-# identify best markers
+# Get single markers from Seurat and PRAUC
 
 ```{r warning=F}
 Idents(cbmc) <- "seurat_clusters"
 
-markers <- FindMarkers(cbmc, ident.1 = "6", features = intersect(rownames(cbmc[["RNA"]]), markers.allset))
-markers <- markers[order(markers$avg_log2FC, decreasing = T),]
-
-# Idents(cbmc) <- "seurat_clusters"
-markers.i <- scMarkerDetect::identify_single_marker(cbmc, "6", markers.allset)
-```
-
-## Seurat DE top markers
-
-```{r}
-markers[1:9,]
-```
-
-## PRAUC top markers
-
-```{r}
-markers.i[1:9,]
-```
-
-```{r fig.width=10, fig.height=8}
-
-plot_combine_PRAUC(cbmc, "VPREB3", "CD79B", "6", return.obj = T) + ggtitle(label = "PRAUC")
-plot_combine_PRAUC(cbmc, "FAM129C", "COL19A1", "6", return.obj = T) + ggtitle(label = "COMET combine markers")
-
-
-COMET.combine <- data.frame(cluster1 = c("CORO1B",	"LTB"),
-                            )
-
-seq(0,10)
-x.cluster <- 1
-for (x.cluster in seq(1,4)) {
-  genes <- read.csv(paste("/home/ronghui/project/dbmaker/data/cluster_", x.cluster, "_pair_final_ranking.csv", sep = ""))
-  genes <- c(genes[1,2], genes[1,3])
-  genes <- gsub("_negation", "", genes)
-  print(plot_combine_PRAUC(cbmc, genes[1], genes[2], x.cluster, return.obj = T) + ggtitle(label = "COMET combine markers"))
-  
-  df.split <- makers.prauc[[x.cluster]]
-  genes <- c(df.split[1,1], df.split[2,1])
-  print(plot_combine_PRAUC(cbmc, genes[1], genes[2], x.cluster, return.obj = T) + ggtitle(label = "PRAUC"))
-}
-
-makers.prauc <- list()
-for (x.cluster in seq(1,6)) {
-  genes <- read.csv(paste("/home/ronghui/project/dbmaker/data/cluster_", x.cluster, "_pair_final_ranking.csv", sep = ""))
-  genes <- c(genes[1,2], genes[1,3])
-  plot_combine_PRAUC(cbmc, genes[1], genes[2], x.cluster, return.obj = T) + ggtitle(label = "COMET combine markers")
-  
-  df.split <- marker_stepbystep(cbmc, x.cluster, depth = 2, geneset = markers.allset)
-  makers.prauc[[x.cluster]] <- df.split
-  genes <- c(df.split[1,1], df.split[2,1])
-  plot_combine_PRAUC(cbmc, genes[1], genes[2], x.cluster, return.obj = T) + ggtitle(label = "PRAUC")
-}
-
-makers.prauc[[1]]
-
-cbmc1 <- subset(x = cbmc, subset = RPS18 > 4.751374 & CD3E > 1.783727)# & MS4A1 > 1.095634)
-cbmc2 <- subset(x = cbmc, subset = RPL34 > get_split.1(cbmc, "RPL34", "2")$x.val & SOX4 > get_split.1(cbmc, "SOX4", "2")$x.val)# & RPS18 > 4.544471)
-
-# cbmc2 <- subset(x = cbmc, subset = FCRLA > 0.9311952 & `HLA-DRA` > 3.580194)# & RPS18 > 4.544471)
-
-tp <- sum(cbmc1@active.ident == "2")
-fp <- sum(cbmc1@active.ident != "2")
-tp/(tp+fp)
-
-tp <- sum(cbmc2@active.ident == "2")
-fp <- sum(cbmc2@active.ident != "2")
-tp/(tp+fp)
-
-
-sum(cbmc1@active.ident == "2")/sum(cbmc@active.ident == "2")
-sum(cbmc2@active.ident == "2")/sum(cbmc@active.ident == "2")
-
-for (x.cluster in seq(1,6)) {
-  genes <- read.csv(paste("data/cluster_", x.cluster, "_pair_final_ranking.csv", sep = ""))
-  genes <- c(genes[1,2], genes[1,3])
-  genes <- gsub("_negation", "", genes)
-  
-  print(plot_combine_PRAUC(cbmc, genes[1], genes[2], x.cluster, return.obj = T) + ggtitle(label = "COMET combine markers"))
-  
-  df.split <- makers.prauc[[x.cluster]]
-  genes <- c(df.split[1,1], df.split[2,1])
-  print(plot_combine_PRAUC(cbmc, genes[1], genes[2], x.cluster, return.obj = T) + ggtitle(label = "PRAUC"))
-}
-
-
-plot_combine_PRAUC(cbmc, "FAM129C", "COL19A1", "6", return.obj = T) + ggtitle(label = "PRAUC")
-df <- get_PRAUC_matrix_combine_markers(cbmc,  "FAM129C", "COL19A1", "6")
-
-
-makers.prauc <- list()
-x.cluster <- 2
-Idents(cbmc) <- "seurat_clusters"
-for (x.cluster in seq(1,4)) {
-  genes <- read.csv(paste("/home/ronghui/project/dbmaker/data/cluster_", x.cluster, "_pair_final_ranking.csv", sep = ""))
-  genes <- c(genes[1,2], genes[1,3])
-  print(plot_combine_PRAUC(cbmc, genes[1], genes[2], x.cluster, return.obj = T) + ggtitle(label = "COMET combine markers"))
-
-  # df.split <- identify_single_marker(cbmc, x.cluster, markers.allset)
-  # makers.prauc[[x.cluster]] <- df.split
-  df.split <- makers.prauc[[x.cluster]]
-  genes <- c(df.split$gene[1],df.split$gene[2])
-  print(plot_combine_PRAUC(cbmc, genes[1], genes[2], x.cluster, return.obj = T) + ggtitle(label = "PRAUC"))
-}
-
-df.split <- identify_single_marker(cbmc, "2", markers.allset)
-
-
-df.split.2 <- marker_stepbystep(cbmc, "2", depth = 2, geneset = markers.allset)
-x.split <- markers.i.5
-markers.i.5$gene
-scrna <- cbmc
-Detect_combine_markers <- function(scrna, id, geneset, step = 0.1){
-  x.split <- identify_single_marker(scrna, id, markers.allset, step = 0.1)
-  x.split <- subset(df.split, prauc > 0.2)
-  x.split <- marker_stepbystep(cbmc, "5", depth = 2, geneset = markers.i.5$gene)
-  gene.combn <- t(combn(x.split$gene, 2))
-  gene.combn.prauc <- data.frame()
-
-  for (gene.iter in 1:length(gene.combn[,1])) {
-    genes <- gene.combn[gene.iter,]
-    gene1 <- genes[1]
-    gene2 <- genes[2]
-    if (x.split[x.split$gene == gene1, ]$direction == "+") {
-      if (x.split[x.split$gene == gene2, ]$direction == "+") {
-        gene.prauc <- get_PRAUC_matrix_combine_markers(scrna = scrna, gene1 = gene1, gene2 = gene2, id = id, step = 0.01)
-        
-      }else{
-        gene.prauc <- get_PRAUC_matrix_combine_markers_neg_pos(scrna = scrna, gene1 = gene1, gene2 = gene2, id = id, step = 0.01)
-      }
-    }else{
-      if (x.split[x.split$gene == gene2, ]$direction == "+") {
-        gene.prauc <- get_PRAUC_matrix_combine_markers_neg_pos(scrna = scrna, gene1 = gene2, gene2 = gene1, id = id, step = 0.01)
-      }else{
-        gene.prauc <- get_PRAUC_matrix_combine_markers_neg(scrna = scrna, gene1 = gene1, gene2 = gene2, id = id, step = 0.01)
-      }
-    }
-    PRAUC <- Area_Under_Curve(gene.prauc$x.rec,  gene.prauc$x.pre,
-                              method = "trapezoid", na.rm = TRUE)
-    de <- data.frame(gene1, gene2, x.split[x.split$gene == gene1, ]$direction, x.split[x.split$gene == gene2, ]$direction, PRAUC)
-    colnames(de) <- c("Gene1", "Gene2", "Direction1", "Direction2", "PRAUC")
-    gene.combn.prauc <- rbind(gene.combn.prauc, de)
-  }
-  return(gene.combn.prauc)
-}
-
-  x.df <- get_PRAUC_matrix_combine_markers_neg_pos(scrna = scrna, gene1 = "MYL3", gene2 = "TMSB4X", id = id, step = 0.01)
-
-  ggplot() + geom_line(x.df, mapping = aes(x.rec, x.pre)) + xlim(c(0,1)) + ylim(c(0,1))
-  
-  x.df <- get_PRAUC_matrix_combine_markers_neg(scrna = scrna, gene1 = "TMSB4X", gene2 = "MT-CO2", id = id, step = 0.01)
-
-  ggplot() + geom_line(x.df, mapping = aes(x.rec, x.pre)) + xlim(c(0,1)) + ylim(c(0,1))
-  
-  x.df <- get_PRAUC_matrix_combine_markers(scrna = scrna, gene1 = "HIST2H2AB", gene2 = "MYL3", id = id, step = 0.01)
-
-  ggplot() + geom_line(x.df, mapping = aes(x.rec, x.pre)) + xlim(c(0,1)) + ylim(c(0,1))
-  
-
-
-get_PRAUC_matrix_combine_markers_neg_pos <- function(scrna, gene1,  gene2, id, step = 0.01){
-  data.mat.surf <- data.frame(gene1 = scrna@assays$RNA@data[gene1,],
-                              gene2 = scrna@assays$RNA@data[gene2,],
-                              id = as.character(makeid(scrna, id)@active.ident))
-  gene.prauc <- data.frame(x.pre <- c(),
-                           x.rec <- c())
-  data.id <- data.mat.surf[data.mat.surf$id == id,]
-  data.other <- data.mat.surf[data.mat.surf$id != id,]
-  
-  gene1.min <- min(data.id$gene1)
-  gene2.max <- max(data.id$gene2)
-  gene1.range <- max(data.id$gene1) - gene1.min
-  gene2.range <- gene2.max - min(data.id$gene2)
-
-  for (x.seq in seq(0, 1, step)) {
-
-    x.val <- gene1.min + x.seq*gene1.range
-    y.val <- gene2.max - x.seq*gene2.range
-
-    # x.val = quantile(data.id$gene1, x.seq)
-    # y.val = quantile(data.id$gene2, x.seq)
-
-    tp <- sum(data.id$gene1 >= x.val & data.id$gene2 <= y.val)
-    fp <- sum(data.other$gene1 >= x.val & data.other$gene2 <= y.val)
-    # tn <- sum(data.other$gene1 < x.val | data.other$gene2 < y.val)
-    fn <- sum(data.id$gene1 < x.val | data.id$gene2 > y.val)
-
-    x.pre <- tp/(tp + fp)
-    x.rec <- tp/(tp + fn)
-    de <- data.frame(x.pre, x.rec)
-    gene.prauc <- rbind(gene.prauc, de)
-  }
-  gene.prauc <- gene.prauc[complete.cases(gene.prauc), ]
-  gene.prauc <- gene.prauc[order(gene.prauc$x.rec), ]
-  return(gene.prauc)
-}
-
-    gene1 <- "MYL3"
-    gene2 <- "HIST2H2AB"
-
-t(combn(x.split$gene, 2))[1,]
-
-
-grid_plot(cbmc, x.split, "5")
-
-df <- data.frame(exp1 = scrna@assays$RNA@data["MYL3",],
-                 exp2 = scrna@assays$RNA@data["FTH1",],
-                 ID = as.character(makeid(scrna, id)@active.ident))
-  
-
-ggplot(df)+
-  geom_point(aes(exp1, exp2, color = ID))
-
-
-
-Idents(cbmc) <- "seurat_clusters"
-Combine_marker_umap(cbmc, x.split, "5")
-
-gene.combn.prauc[order(gene.combn.prauc$PRAUC, decreasing = T),]
-
-
-  x.df <- get_PRAUC_matrix_combine_markers_neg_pos(scrna = scrna, gene1 = "MYL3", gene2 = "TMSB4X", id = id, step = 0.01)
-
-  ggplot() + geom_line(x.df, mapping = aes(x.rec, x.pre)) + xlim(c(0,1)) + ylim(c(0,1))
-  
-  x.df <- get_PRAUC_matrix_combine_markers_neg_pos(scrna = scrna, gene1 = "MYL3", gene2 = "FTH1", id = id, step = 0.01)
-
-  ggplot() + geom_line(x.df, mapping = aes(x.rec, x.pre)) + xlim(c(0,1)) + ylim(c(0,1))
-  
-  x.df <- get_PRAUC_matrix_combine_markers_neg_pos(scrna = scrna, gene1 = "TUSC3", gene2 = "TMSB4X", id = id, step = 0.01)
-
-  ggplot() + geom_line(x.df, mapping = aes(x.rec, x.pre)) + xlim(c(0,1)) + ylim(c(0,1))
-
-```
-
-
-
-```{r}
-df.split.2 <- identify_single_marker(cbmc, "2", geneset = markers.allset)
-
-Idents(cbmc)<- "seurat_clusters"
-grid_plot(cbmc, df.split, "5")
-
-cbmc <- makeid(cbmc, "5")
-VlnPlot(cbmc, "MYL3")
-VlnPlot(cbmc, "HIST2H2AB")
-
-VlnPlot(cbmc, "FTH1")
-VlnPlot(cbmc, "UBA52")
-
-print(plot_combine_PRAUC(cbmc, "MYL3", "HIST2H2AB", "5", return.obj = T) + ggtitle(label = "PRAUC"))
-
-print(plot_combine_PRAUC_neg(cbmc, "FTH1", "UBA52", "5", return.obj = T) + ggtitle(label = "PRAUC"))
-print(plot_combine_PRAUC_neg(cbmc, "TMSB4X", "MT-CO2", "5", return.obj = T) + ggtitle(label = "PRAUC"))
-
-plot_combine_PRAUC_neg <- function(scrna, gene1, gene2, id, step = 0.01, return.obj = F){
-  x.df <- get_PRAUC_matrix_combine_markers_neg(scrna, gene1, gene2, id = id, step = step)
-  g <- ggplot() + geom_line(x.df, mapping = aes(x.rec, x.pre)) + xlim(c(0,1)) + ylim(c(0,1))
-  if (!return.obj) {
-    print(g)
-  }else{
-    return(g)
-  }
-}
-
-markers.i.5 <- identify_single_marker(cbmc, "5", markers.allset)
-markers <- FindMarkers(cbmc, ident.1 = "5", features = intersect(rownames(cbmc[["RNA"]]), markers.allset))
-markers.1 <- subset(markers, p_val_adj < 0.05)
-markers.2 <- subset(markers.1, avg_log2FC < 0)
-
-```
-
-```{r}
-print(plot_combine_PRAUC_neg(cbmc, "FTH1", "UBA52", "5", return.obj = T) + ggtitle(label = "PRAUC"))
-# print(plot_combine_PRAUC_neg(cbmc, "RPS9", "RPS12", "5", return.obj = T) + ggtitle(label = "PRAUC"))
-print(plot_combine_PRAUC_neg(cbmc, "RPLP2", "UBA52", "5", return.obj = T) + ggtitle(label = "PRAUC"))
-print(plot_combine_PRAUC_neg(cbmc, "FTH1", "RPL8", "5", return.obj = T) + ggtitle(label = "PRAUC"))
-
-df <- data.frame(exp1 = scrna@assays$RNA@data["PTTG2",],
-                 exp2 = scrna@assays$RNA@data["TUSC3",],
-                 ID = as.character(makeid(cbmc, "5")@active.ident))
-
-
-ggplot(df)+
-  geom_point(aes(exp1, exp2, color = ID))
-```
-
-
-```{r}
-cbmc.x <- subset(cbmc, idents = "5")
-markers.i.5 <- subset(markers.i.5, prauc > 0.2)
-markers.i.5.n <- markers.i.5[markers.i.5$direction == "-", ]
-markers.i.5.p <- markers.i.5[markers.i.5$direction == "+", ]
-
-x.data.p <- cbmc.x@assays$RNA@data[markers.i.5.p$gene, ]
-x.data.p <- as.data.frame(x.data.p)
-
-x.data.n <- cbmc.x@assays$RNA@data[markers.i.5.n$gene, ]
-x.data.n <- as.data.frame(x.data.n)
-
-x.data.n$max <- apply(x.data.n, 1, max)
-x.data.n <- x.data.n$max - x.data.n
-x.data.n <- x.data.n[, -length(colnames(x.data.n))]
-
-x.data <- rbind(x.data.n, x.data.p)
-
-x.data <- scale(x.data)
-# set.seed(4)
-km.res <- kmeans(x.data, 10)
-
-table(km.res$cluster)
-km.res$cluster
-
-dist(x.data,p=2, method = "minkowski")
-dist(x.data[c("FTH1", "UBA52"),],p=2, method = "maximum")
-dist(x.data[c("FTH1", "UBA52"),],p=2, method = "minkowski")
-
-result <- dist(x.data, method = "euclidean")
-result_hc <- hclust(d = result, method = "ward.D2")
-#进行初步展示
-fviz_dend(result_hc, cex = 0.6, k = 4)
-
-
-x.data <- cbind(x.data, cluster = km.res$cluster)
+# markers.wilcox <- list()
+# markers.prauc <- list()
+# for (x.cluster in seq(1,8)) {
+#   markers <- FindMarkers(cbmc, ident.1 = x.cluster, features = intersect(rownames(cbmc[["RNA"]]), markers.allset))
+#   markers <- markers[order(markers$avg_log2FC, decreasing = T),]
+#   markers.wilcox[[x.cluster]] <- markers
+#   markers.i <- identify_single_marker(cbmc, x.cluster, markers.allset)
+#   markers.prauc[[x.cluster]] <- markers.i
+# }
+
+save(markers.wilcox, file = "first8.seuratDE.markers.rds")
+save(markers.prauc, file = "first8.prauc.markers.rds")
+
+load(file = "first8.seuratDE.markers.rds")
+load(file = "first8.prauc.markers.rds")
 
 ```
 
@@ -425,120 +117,261 @@ x.data <- cbind(x.data, cluster = km.res$cluster)
 
 Compare top 9 marker from DE and prauc based method
 
-# Plot PRAUC of TOP 9 markers from DE and prauc based ranking
+# Plot PRAUC of TOP 9 Positive markers from DE and prauc based ranking
 
 ```{r}
 Idents(cbmc) <- "seurat_clusters"
 
-g <- ggplot()
-for (genes in intersect(rownames(markers)[1:9], markers.i$gene[1:9])) {
-  df <- get_gene_PRAUC_matrix(cbmc, genes, "6", step = 0.01)
-  df$gene = as.factor(genes)
-  df$method = as.factor("Seurat and PRAUC")
-  g <- g + geom_line(df, mapping = aes(x.rec, x.pre, color = method))
+for (x.cluster in seq(1,8)) {
+  df.prauc <- markers.prauc[[x.cluster]]
+  df.wilcox <- markers.wilcox[[x.cluster]]
+  
+  g <- ggplot()
+  for (genes in intersect(rownames(df.wilcox)[1:9], df.prauc$gene[1:9])) {
+    df <- get_gene_PRAUC_matrix(cbmc, genes, x.cluster, step = 0.01)
+    df$gene = as.factor(genes)
+    df$method = as.factor("Seurat and PRAUC")
+    g <- g + geom_line(df, mapping = aes(x.rec, x.pre, color = method))
+  }
+  for (genes in setdiff(rownames(df.wilcox)[1:9], df.prauc$gene[1:9])) {
+    df <- get_gene_PRAUC_matrix(cbmc, genes, x.cluster, step = 0.01)
+    df$gene = as.factor(genes)
+    df$method = as.factor("Seurat")
+    g <- g + geom_line(df, mapping = aes(x.rec, x.pre, color = method))
+  }
+  for (genes in setdiff(df.prauc$gene[1:9], rownames(df.wilcox)[1:9])) {
+    if (df.prauc[df.prauc$gene == genes, ]$direction == "+") {
+      df <- get_gene_PRAUC_matrix(cbmc, genes, x.cluster, step = 0.01)
+      df$gene = as.factor(genes)
+      df$method = as.factor("PRAUC")
+      g <- g + geom_line(df, mapping = aes(x.rec, x.pre, color = method))
+    }else{
+      df <- get_gene_PRAUC_matrix_neg(cbmc, genes, x.cluster, step = 0.01)
+      df$gene = as.factor(genes)
+      df$method = as.factor("PRAUC")
+      g <- g + geom_line(df, mapping = aes(x.rec, x.pre, color = method))
+    }
+  }
+  print(g)
 }
-
-for (genes in setdiff(rownames(markers)[1:9], markers.i$gene[1:9])) {
-  df <- get_gene_PRAUC_matrix(cbmc, genes, "6", step = 0.01)
-  df$gene = as.factor(genes)
-  df$method = as.factor("Seurat")
-  g <- g + geom_line(df, mapping = aes(x.rec, x.pre, color = method))
-}
-
-for (genes in setdiff(markers.i$gene[1:9], rownames(markers)[1:9])) {
-  df <- get_gene_PRAUC_matrix(cbmc, genes, "6", step = 0.01)
-  df$gene = as.factor(genes)
-  df$method = as.factor("PRAUC")
-  g <- g + geom_line(df, mapping = aes(x.rec, x.pre, color = method))
-}
-
-g
 
 ```
 
-# Plot PRAUC of TOP 12 markers from COMET  and prauc ranking
+
+# Plot PRAUC of TOP 12 markers from COMET and prauc ranking
 
 ```{r fig.height=6, fig.width=8}
 Idents(cbmc) <- "seurat_clusters"
 
-COMET.markers <- c("MS4A1", "VPREB3", "TCL1A", "FCRLA", "CD19", "BANK1", "HLA-DOB", "CD79B", "CD22", "FAM129C", "COL19A1", "HLA-DQA1")
-
-g <- ggplot()
-for (genes in intersect(COMET.markers, markers.i$gene[1:12])) {
-  df <- get_gene_PRAUC_matrix(cbmc, genes, "6", step = 0.005)
-  df$gene = as.factor(genes)
-  df$method = as.factor("COMET and PRAUC")
-  g <- g + geom_line(df, mapping = aes(x.rec, x.pre, color = method))
+for (x.cluster in seq(1,8)) {
+  genes <- read.csv(paste("/home/ronghui/project/dbmaker/data/cluster_", x.cluster, "_singleton_all_ranked.csv", sep = ""))
+  genes <- genes[1:12, ]
+  comet.genes.pos <- genes[genes$Log2FoldChange > 0, ]$gene_1
+  comet.genes.neg <- genes[genes$Log2FoldChange < 0, ]$gene_1
+  comet.genes.neg <-gsub("_negation", "", comet.genes.neg)
+  
+  df.prauc <- markers.prauc[[x.cluster]]
+  df.prauc <- df.prauc[1:12,]
+  df.prauc.pos <- df.prauc[df.prauc$direction == "+", ]$gene
+  df.prauc.neg <- df.prauc[df.prauc$direction == "-", ]$gene
+  
+  g <- ggplot()
+  for (genes in intersect(comet.genes.pos, df.prauc.pos)) {
+    df <- get_gene_PRAUC_matrix(cbmc, genes, x.cluster, step = 0.01)
+    df$gene = as.factor(genes)
+    df$method = as.factor("Seurat and COMET")
+    g <- g + geom_line(df, mapping = aes(x.rec, x.pre, color = method))
+  }
+  for (genes in setdiff(comet.genes.pos, df.prauc.pos)) {
+    df <- get_gene_PRAUC_matrix(cbmc, genes, x.cluster, step = 0.01)
+    df$gene = as.factor(genes)
+    df$method = as.factor("COMET")
+    g <- g + geom_line(df, mapping = aes(x.rec, x.pre, color = method))
+  }
+  for (genes in setdiff(df.prauc.pos, comet.genes.pos)) {
+    df <- get_gene_PRAUC_matrix(cbmc, genes, x.cluster, step = 0.01)
+    df$gene = as.factor(genes)
+    df$method = as.factor("PRAUC")
+    g <- g + geom_line(df, mapping = aes(x.rec, x.pre, color = method))
+  }
+  
+  for (genes in intersect(comet.genes.neg, df.prauc.neg)) {
+    df <- get_gene_PRAUC_matrix_neg(cbmc, genes, x.cluster, step = 0.01)
+    df$gene = as.factor(genes)
+    df$method = as.factor("Seurat and COMET")
+    g <- g + geom_line(df, mapping = aes(x.rec, x.pre, color = method))
+  }
+  for (genes in setdiff(comet.genes.neg, df.prauc.neg)) {
+    df <- get_gene_PRAUC_matrix_neg(cbmc, genes, x.cluster, step = 0.01)
+    df$gene = as.factor(genes)
+    df$method = as.factor("COMET")
+    g <- g + geom_line(df, mapping = aes(x.rec, x.pre, color = method))
+  }
+  for (genes in setdiff(df.prauc.neg, comet.genes.neg)) {
+    df <- get_gene_PRAUC_matrix_neg(cbmc, genes, x.cluster, step = 0.01)
+    df$gene = as.factor(genes)
+    df$method = as.factor("PRAUC")
+    g <- g + geom_line(df, mapping = aes(x.rec, x.pre, color = method))
+  }
+  print(g + xlab("Recall") + ylab("Precision") + ggtitle(paste(x.cluster)))
 }
-
-for (genes in setdiff(COMET.markers, markers.i$gene[1:12])) {
-  df <- get_gene_PRAUC_matrix(cbmc, genes, "6", step = 0.005)
-  df$gene = as.factor(genes)
-  df$method = as.factor("COMET")
-  g <- g + geom_line(df, mapping = aes(x.rec, x.pre, color = method))
-}
-
-for (genes in setdiff(markers.i$gene[1:12], COMET.markers)) {
-  df <- get_gene_PRAUC_matrix(cbmc, genes, "6", step = 0.005)
-  df$gene = as.factor(genes)
-  df$method = as.factor("PRAUC")
-  g <- g + geom_line(df, mapping = aes(x.rec, x.pre, color = method))
-}
-
-g + xlab("Recall") + ylab("Precision")
 
 ```
 
-
-# Show TOP 9 markers from DE analysis
-
-Show TOP 9 markers from DE analysis
-
-```{r fig.width=9, fig.height=9}
-cbmc <- makeid(cbmc,"6")
-VlnPlot(cbmc, features = rownames(markers)[1:9])
-
-```
-
-# TOP 9 markers from PRAUC ranking
-
-Show TOP 9 markers from PRAUC ranking
-
-```{r fig.width=9, fig.height=9}
-VlnPlot(cbmc, features = markers.i$gene[1:9])
-```
-
-# Find best line to split cells
-
-```{r fig.width=9, fig.height=9}
-cbmc <- makeid(cbmc, "6")
-
-plots = list()
-
-for (gene in markers.i$gene[1:9]) {
-  plots[[gene]] <- VlnPlot(cbmc, features = gene) + geom_hline(yintercept=get_split.1(cbmc, gene, "6")$x.val, linetype = 1)
-}
-
-plot_grid(plotlist=plots, ncol=3)
-```
-
-
-
-# Grid Plot of combine 2 markers
+# Detect combine markers for interested cell groups
 
 ```{r}
-plot_grid_2(cbmc, "TCL1A", "CD79B", "6")
+# makers.prauc <- list()
+# for (x.cluster in seq(1,8)) {
+#   df.split <- Detect_combine_markers(cbmc, x.cluster, markers.allset, max.gene = 50)
+#   makers.prauc[[x.cluster]] <- df.split
+# }
+
+load(file = "first8clusters.combine.markers.rds")
+
+makers.prauc
 ```
+
+
+
+```{r fig.width=10, fig.height=8}
+scrna <- cbmc
+for (x.cluster in seq(1,8)) {
+  genes <- read.csv(paste("/home/ronghui/project/dbmaker/data/cluster_", x.cluster, "_pair_final_ranking.csv", sep = ""))
+  genes <- c(genes[1,2], genes[1,3])
+  
+  # x.df <- get_PRAUC_matrix_combine_markers(scrna = scrna, gene1 = genes[1], gene2 = genes[2], id = x.cluster, step = 0.1)
+  # x.df$method <- "COMET"
+  
+  if (!grepl("_negation", genes[1])) {
+    if (!grepl("_negation", genes[2])) {
+      gene.prauc <- get_PRAUC_matrix_combine_markers(scrna = scrna, gene1 = genes[1], gene2 = genes[2], id = x.cluster, step = 0.01)
+      }else{
+        genes[2] <- gsub("_negation", "", genes[2])
+        gene.prauc <- get_PRAUC_matrix_combine_markers_neg_pos(scrna = scrna, gene1 = genes[1], gene2 = genes[2], id = x.cluster, step = 0.01)
+      }
+    }else{
+      if (!grepl("_negation", genes[2])) {
+        genes[1] <- gsub("_negation", "", genes[1])
+        gene.prauc <- get_PRAUC_matrix_combine_markers_neg_pos(scrna = scrna, gene1 = genes[2], gene2 = genes[1], id = x.cluster, step = 0.01)
+      }else{
+        genes[1] <- gsub("_negation", "", genes[1])
+        genes[2] <- gsub("_negation", "", genes[2])
+        gene.prauc <- get_PRAUC_matrix_combine_markers_neg(scrna = scrna, gene1 = genes[1], gene2 = genes[2], id = x.cluster, step = 0.01)
+      }
+    }
+
+  x.df <- gene.prauc
+  x.df$method <- "COMET"
+  # g <- ggplot() + geom_line(gene.prauc.comet, mapping = aes(x.rec, x.pre, color = method)) + xlim(c(0,1)) + ylim(c(0,1))
+  
+  df.split <- makers.prauc[[x.cluster]]
+  genes <- c(df.split[1,1], df.split[1,2])
+  gene1 <- genes[1]
+  gene2 <- genes[2]
+  
+  Direction.c <- paste(df.split[1, ]$Direction1, df.split[1, ]$Direction2, sep = "")
+  if (Direction.c == "++") {
+    gene.prauc <- get_PRAUC_matrix_combine_markers(scrna = scrna, gene1 = gene1, gene2 = gene2, id = x.cluster, step = 0.01)
+  }else if (Direction.c == "+-") {
+    gene.prauc <- get_PRAUC_matrix_combine_markers_neg_pos(scrna = scrna, gene1 = gene1, gene2 = gene2, id = x.cluster, step = 0.01)
+  }else if (Direction.c == "-+") {
+    gene.prauc <- get_PRAUC_matrix_combine_markers_neg_pos(scrna = scrna, gene1 = gene2, gene2 = gene1, id = x.cluster, step = 0.01)
+  }else{
+    gene.prauc <- get_PRAUC_matrix_combine_markers_neg(scrna = scrna, gene1 = gene1, gene2 = gene2, id = x.cluster, step = 0.01)
+  }
+  
+  x.df.2 <- gene.prauc
+  x.df.2$method <- "PRAUC"
+  
+  x.df <- rbind(x.df, x.df.2)
+
+  print(ggplot() + geom_line(x.df, mapping = aes(x.rec, x.pre, col = method)) + ggtitle(paste(x.cluster))+ 
+          xlim(c(0,1)) + ylim(c(0,1)))
+}
+```
+
+
+# Dotplot of Combine markers
+
+```{r fig.width=10, fig.height=5}
+for (x.cluster in seq(1,8)) {
+  scrna <- makeid(scrna, x.cluster)
+  genes <- read.csv(paste("/home/ronghui/project/dbmaker/data/cluster_", x.cluster, "_pair_final_ranking.csv", sep = ""))
+  genes <- c(genes[1,2], genes[1,3])
+  if (!grepl("_negation", genes[1])) {
+    gene1.direc <- "+"
+  }else{
+    gene1.direc <- "-"
+  }
+  
+  if (!grepl("_negation", genes[2])) {
+    gene2.direc <- "+"
+  }else{
+    gene2.direc <- "-"
+  }
+  genes <- gsub("_negation", "", genes)
+  gene1 <- genes[1]
+  gene2 <- genes[2]
+  
+  p1 <- plot_grid_2(cbmc, gene1, gene2, gene1.direc, gene2.direc, x.cluster, return.obj = T) + ggtitle("COMET")
+  
+
+  df.split <- makers.prauc[[x.cluster]]
+  genes <- c(df.split[1,1], df.split[1,2])
+  gene1 <- genes[1]
+  gene2 <- genes[2]
+  
+  p2 <- plot_grid_2(cbmc, gene1, gene2, df.split$Direction1[1], df.split$Direction2[1], x.cluster, return.obj = T) + ggtitle("PRAUC")
+  
+  print(p1 | p2)
+}
+```
+
+
+
 
 
 # Umap plot of combine markers
 
-```{r fig.height = 9, fig.width=12}
+```{r fig.height = 7, fig.width=18}
 Idents(cbmc) <- "seurat_clusters"
-plot_marker_c_umap(cbmc, "TCL1A", "CD79B", "6")
+plot_marker_c_umap(cbmc, "TCL1A", "CD79B", "+", "+", "6")
+scrna <- cbmc
+Idents(scrna) <- "seurat_clusters"
+for (x.cluster in seq(1,8)) {
+  genes <- read.csv(paste("/home/ronghui/project/dbmaker/data/cluster_", x.cluster, "_pair_final_ranking.csv", sep = ""))
+  genes <- c(genes[1,2], genes[1,3])
+  if (!grepl("_negation", genes[1])) {
+    gene1.direc <- "+"
+  }else{
+    gene1.direc <- "-"
+  }
+  
+  if (!grepl("_negation", genes[2])) {
+    gene2.direc <- "+"
+  }else{
+    gene2.direc <- "-"
+  }
+  genes <- gsub("_negation", "", genes)
+  gene1 <- genes[1]
+  gene2 <- genes[2]
+  
+  p1 <- plot_marker_c_umap(scrna, gene1, gene2, gene1.direc, gene2.direc, x.cluster) + ggtitle("COMET")
+  
+
+  df.split <- makers.prauc[[x.cluster]]
+  genes <- c(df.split[1,1], df.split[1,2])
+  gene1 <- genes[1]
+  gene2 <- genes[2]
+  
+  p2 <- plot_marker_c_umap(scrna, gene1, gene2, df.split$Direction1[1], df.split$Direction2[1], x.cluster) + ggtitle("PRAUC")
+  
+  print(p1 | p2)
+}
 ```
 
-# step by step
+# step by step (Maximam Recall approach)
 
 ```{r}
 
@@ -589,27 +422,6 @@ grid_plot(cbmc, df.split.5, "5")
 plot_filter_combination_first2(cbmc, df.split.5, "5")
 
 plot_filter_combination_first2(cbmc, makers.prauc[[1]], "1")
-
-genes
-# "CORO1B" "LTB"  
-scrna <- cbmc
-id <- "1"
-# FTH1	UBA52
-
-  df <- data.frame(exp1 = scrna@assays$RNA@data["CORO1B",],
-                   exp2 = scrna@assays$RNA@data["LTB",],
-                   ID = as.character(makeid(scrna, id)@active.ident))
-  
-  # x.split <- df.split$split.value[1]
-  # y.split <- df.split$split.value[2]
-  
-  ggplot(df)+
-    geom_point(aes(exp1, exp2, color = ID))
-  
-  get_split_neg(cbmc, "FTH1" , "5")
-  get_split_neg(cbmc, "UBA52" , "5")
-  
-
 
 ```
 
