@@ -14,6 +14,7 @@ output:
 ```{r setup, include=FALSE}
 # .libPaths("~/R/x86_64-pc-linux-gnu-library/3.6")
 library(Seurat)
+library(SeuratDisk)
 library(dplyr, lib.loc = "/home/ronghui/anaconda3/envs/r4-real/lib/R/library")
 library(ggplot2, lib.loc = "/home/ronghui/anaconda3/envs/r4-real/lib/R/library")
 suppressMessages(library(cowplot, lib.loc = "/home/ronghui/anaconda3/envs/r4-real/lib/R/library"))
@@ -21,8 +22,8 @@ suppressMessages(library(randomForest, lib.loc = "/home/ronghui/anaconda3/envs/r
 suppressMessages(library(patchwork))
 suppressMessages(library(data.table))
 suppressMessages(library(MLmetrics))
-source("/home/ronghui/project/scMarkerDetect/R/Cell_markers.ident.R")
-source("/home/ronghui/project/scMarkerDetect/enhance-R-master/enhance.R")
+# source("/home/ronghui/project/scMarkerDetect/R/Cell_markers.ident.R")
+# source("/home/ronghui/project/scMarkerDetect/enhance-R-master/enhance.R")
 # library(scMarkerDetect)
 ```
 
@@ -66,10 +67,516 @@ markers.allset <- unique(markers.allset)
 # cbmc <- FindClusters(cbmc, resolution = 0.8, verbose = FALSE)
 # cbmc <- RunUMAP(cbmc, dims = 1:30)
 
-load("/home/ronghui/project/dbmaker/seurat.cbmc.rds")
+# load("/home/ronghui/project/dbmaker/seurat.cbmc.rds")
+citeseq <- LoadH5Seurat("/home/ronghui/Downloads/multi.h5seurat")
 DimPlot(cbmc, label = TRUE)
+citeseq@reductions$apca <- NULL
+citeseq@assays$SCT@data
+
+
+DefaultAssay(scrna) <- "ADT"
+DimPlot(scrna, group.by = "celltype.l1", reduction = "wnn.umap")
+FeaturePlot(scrna,  reduction = "wnn.umap", features = "CD8")
+FeaturePlot(scrna,  reduction = "wnn.umap", features = "CD14")
+DefaultAssay(scrna) <- "SCT"
+FeaturePlot(citeseq,  reduction = "wnn.umap", features = "CD79A")
+Idents(scrna) <- "celltype.l1"
+makers.b <- FindMarkers(citeseq, ident.1 = "B")
+makers.cd8t <- FindMarkers(scrna, ident.1 = "CD8 T")
+makers.cd8t <- makers.cd8t[order(makers.cd8t$avg_log2FC, decreasing = T),]
+
+makers.b.adt <- makers.b
+makers.b <- makers.b[order(makers.b$avg_log2FC, decreasing = T),]
+
+makers.b.all <- makers.b
+makers.b.all$avg_log2FC <- abs(makers.b.all$avg_log2FC)
+makers.b.all <- makers.b[order(makers.b.all$avg_log2FC, decreasing = T),]
+
+VlnPlot(citeseq, "CD19", assay = "SCT")
+table(citeseq@assays$SCT@data["CD19",])
+id <- "B"
+gene <- "CD19"
+get_split_pos.1(citeseq, "CD19", "B")
+get_split_pos.1(citeseq, "CD72", "B")
+get_split_pos.1(citeseq, "LINC00926", "B")
+
+DefaultAssay(scrna) <- "SCT"
+VlnPlot(scrna, "LINC02397")
+VlnPlot(scrna, "CD19")
+
+Idents(citeseq) <- "celltype.l1"
+citeseq <- makeid(citeseq, "B")
+table(as.numeric(citeseq@active.ident), citeseq@active.ident)
+makers.b["CD21",]
+
+
+Idents(scrna) <- "celltype.l1"
+DefaultAssay(scrna) <- "SCT"
+makers.mono <- FindMarkers(scrna, ident.1 = "Mono", test.use = "t")
+makers.mono <- makers.mono[order(makers.mono$avg_log2FC, decreasing = T),]
+makers.mono["CD14", ]
 ```
 
+```{r}
+DefaultAssay(scrna) <- "ADT"
+Idents(scrna) <- "celltype.l1"
+FeaturePlot(scrna,  reduction = "wnn.umap", features = "CD14")
+
+
+get_split_pos.1(scrna, "CD14", "Mono")
+get_split_pos.1(scrna, "S100A9", "Mono")
+
+df.mono <- data.frame()
+for (gene in rownames(makers.mono)[1:30]) {
+  df.s <- get_split_pos.1(scrna, gene, "Mono")
+  df.mono <- rbind(df.mono, df.s)
+}
+df.mono[order(df.mono$x.margin.adj, decreasing = T), ]
+df.mono["CD14", ]
+
+DefaultAssay(scrna) <- "SCT"
+VlnPlot(scrna, "CD14")
+
+hist(scrna@assays$SCT@data["CD14", ])
+
+get_gene_PRAUC_pos <- function(scrna, gene, id, step = 0.01) {
+  data.mat.surf <- data.frame(exp = scrna@assays$SCT@data[gene,],
+                              id = as.character(scrna@active.ident))
+  gene.prauc <- data.frame(x.pre <- c(),
+                           x.rec <- c())
+  data.id <- data.mat.surf[data.mat.surf$id == id,]
+  data.other <- data.mat.surf[data.mat.surf$id != id,]
+
+  # x.max <- max(data.id$exp)
+  # x.min <- min(data.id$exp)
+
+  # for (x.val in seq(x.min, x.max, (x.max - x.min)/100)) {
+  for (x.val in quantile(data.mat.surf$exp, seq(0, 1, step))) {
+
+    tp <- sum(data.id$exp >= x.val)
+    fp <- sum(data.other$exp >= x.val)
+    # tn <- sum(data.other$exp < x.val)
+    fn <- sum(data.id$exp < x.val)
+
+    x.pre <- tp/(tp + fp)
+    x.rec <- tp/(tp + fn)
+    de <- data.frame(x.pre, x.rec)
+    gene.prauc <- rbind(gene.prauc, de)
+  }
+
+  gene.prauc <- gene.prauc[complete.cases(gene.prauc), ]
+  gene.prauc <- gene.prauc[order(gene.prauc$x.rec), ]
+
+  PRAUC <- Area_Under_Curve(gene.prauc$x.rec,  gene.prauc$x.pre,
+                            method = "trapezoid", na.rm = TRUE)
+  return(PRAUC)
+}
+
+get_gene_PRAUC_pos_matrix <- function(scrna, gene, id, step = 0.01) {
+  data.mat.surf <- data.frame(exp = scrna@assays$SCT@data[gene,],
+                              id = as.character(scrna@active.ident))
+  gene.prauc <- data.frame(x.pre <- c(),
+                           x.rec <- c())
+  data.id <- data.mat.surf[data.mat.surf$id == id,]
+  data.other <- data.mat.surf[data.mat.surf$id != id,]
+
+  # x.max <- max(data.id$exp)
+  # x.min <- min(data.id$exp)
+
+  # for (x.val in seq(x.min, x.max, (x.max - x.min)/100)) {
+  for (x.val in quantile(data.mat.surf$exp, seq(0, 1, step))) {
+
+    tp <- sum(data.id$exp >= x.val)
+    fp <- sum(data.other$exp >= x.val)
+    # tn <- sum(data.other$exp < x.val)
+    fn <- sum(data.id$exp < x.val)
+
+    x.pre <- tp/(tp + fp)
+    x.rec <- tp/(tp + fn)
+    de <- data.frame(x.pre, x.rec)
+    gene.prauc <- rbind(gene.prauc, de)
+  }
+
+  gene.prauc <- gene.prauc[complete.cases(gene.prauc), ]
+  gene.prauc <- gene.prauc[order(gene.prauc$x.rec), ]
+  return(gene.prauc)
+}
+
+
+
+get_gene_PRAUC_pos_matrix(scrna, "CD72", "B")
+df <- data.frame()
+for (gene in rownames(makers.b[makers.b$avg_log2FC > 0, ])) {
+  df.prauc <- get_gene_PRAUC_pos(scrna, gene, "B")
+  df.s <- data.frame(gene, df.prauc)
+  df <- rbind(df, df.s)
+}
+
+df[order(df$df.prauc, decreasing = T), ]
+markers.b.roc
+
+df.m <- get_gene_PRAUC_pos_matrix(scrna, "CD72", "B")
+
+plot(df.m$x.rec, df.m$x.pre)
+
+markers.b.roc <- FindMarkers(scrna, ident.1 = "B", test.use = "roc")
+
+
+```
+
+
+
+```{r}
+get_split_pos.1(scrna, "LINC02397", "B")
+get_split_pos.1(scrna, "CD79A", "B")
+get_split_pos.1(scrna, "CD16", "B")
+
+DefaultAssay(scrna) <- "ADT"
+markers.adt <- FindAllMarkers(scrna, test.use = "t")
+markers.adt.list <- split(markers.adt, markers.adt$cluster)
+markers.adt.list <- lapply(markers.adt.list, subset, subset = p_val_adj < 0.05)
+DimPlot(scrna, group.by = "celltype.l1", reduction = "wnn.umap", label = T)
+FeaturePlot(scrna,  reduction = "wnn.umap", features = "CD16")
+
+DefaultAssay(scrna) <- "SCT"
+VlnPlot(scrna, " CD")
+
+markers.adt.intersect.list <- list()
+for (cluster in names(markers.adt.list)) {
+  df <- markers.adt.list[[cluster]]
+  df <- df[df$gene %in% intersect(rownames(scrna[["ADT"]]), rownames(scrna[["SCT"]])), ]
+  df <- df[order(df$avg_log2FC, decreasing = T),]
+  markers.adt.intersect.list[[cluster]] <- df
+}
+
+```
+
+
+```{r}
+markers.t.list
+```
+
+```{r}
+get_split_pos.1(scrna, "CD14", "Mono", step = 0.1)
+```
+
+
+
+```{r}
+intersect(rownames(scrna[["ADT"]]), rownames(scrna[["SCT"]]))
+
+DefaultAssay(scrna) <- "SCT"
+FeaturePlot(scrna, "CLEC12A", reduction = "wnn.umap")
+DimPlot(scrna, group.by = "celltype.l1", reduction = "wnn.umap", label = T)
+VlnPlot(scrna, "CLEC12A")
+```
+
+```{r}
+get_split_pos.1(scrna.1, "CD22", "B")
+get_split_pos.1(scrna, "CNTNAP2", "B")
+get_split_pos.1(scrna, "CD79A", "B")
+get_split_pos.1(scrna.1, "CD19", "B")
+get_split_pos.1(scrna.1, "CD72", "B")
+get_split_pos.1(scrna, "CLEC12A", "Mono")
+
+```
+
+
+
+```{r}
+DefaultAssay(scrna) <- "ADT"
+FeaturePlot(scrna,  reduction = "wnn.umap", features = "CD72")
+
+DefaultAssay(scrna) <- "SCT"
+VlnPlot(scrna, "CD72")
+VlnPlot(scrna, "CD19")
+```
+
+
+
+```{r}
+df <- data.frame()
+for (gene in c(rownames(makers.b[makers.b$avg_log2FC > 0, ]), "CD19")) {
+  df.s <- get_split_pos.1(citeseq, gene, "B")
+  df <- rbind(df, df.s)
+}
+
+df[order(df$x.margin, decreasing = T), ]
+
+
+df.5 <- data.frame()
+for (gene in rownames(makers.b[makers.b$avg_log2FC > 0, ])) {
+  df.s <- get_split_pos.1(scrna, gene, "B")
+  df.5 <- rbind(df.5, df.s)
+}
+
+df.5[order(df.5$x.margin.adj, decreasing = T), ]
+makers.b
+makers.b["CD19",]
+makers.b["CD22",]
+df.5["CD79A",]
+
+DefaultAssay(scrna) <- "ADT"
+FeaturePlot(scrna,  reduction = "wnn.umap", features = "CD24")
+
+DefaultAssay(scrna) <- "SCT"
+FeaturePlot(scrna,  reduction = "wnn.umap", features = "CD79A")
+Idents(scrna) <- "celltype.l1"
+markers.t <- FindAllMarkers(scrna, test.use = "t")
+markers.wilcox <- FindAllMarkers(scrna, test.use = "wilcox")
+markers.wilcox.list <- split(markers.wilcox, markers.wilcox$cluster)
+markers.wilcox.list <- lapply(markers.wilcox.list, subset, subset = p_val_adj < 0.05)
+
+# save(markers.wilcox.list, file = "citeseq.markers.wilcoc.rds")
+# save(markers.t.list, file = "citeseq.markers.t.rds")
+
+markers.t.list <- split(markers.t, markers.t$cluster)
+markers.t.list <- lapply(markers.t.list, subset, subset = p_val_adj < 0.05)
+cluster <- "B"
+markers.list.rerank.2 <- list()
+for (cluster in names(markers.t.list)) {
+  df <- data.frame()
+  markers.list <- markers.t.list[[cluster]]
+  print(paste(cluster))
+  
+  for (gene in markers.list$gene) {
+    df.s <- get_split_pos.1(scrna, gene, cluster)
+    df <- rbind(df, df.s)
+  }
+  markers.list.rerank.2[[cluster]] <- df
+}
+
+markers.list.rerank.2.sort <- list()
+for (cluster in names(markers.list.rerank)) {
+  markers.list <- markers.list.rerank.2[[cluster]]
+  markers.list <- markers.list[order(markers.list$x.margin.adj, decreasing = T), ]
+  markers.list
+  markers.list.rerank.2.sort[[cluster]] <- markers.list
+}
+
+markers.list.rerank.1[["DC"]][intersect(rownames(scrna[["ADT"]]), rownames(scrna[["SCT"]])),]
+
+markers.wilcox.list[["Mono"]][rownames(markers.list.rerank.1[["Mono"]])[1:50],]
+
+
+VlnPlot(scrna.1, "FCAR")
+VlnPlot(scrna.1, "CD14")
+hist(as.numeric(scrna[["SCT"]]["FCAR", ]))
+
+scrna <- NormalizeData(scrna, assay = "SCT")
+
+save(markers.list.rerank.1, file = "citeseq.markers.rerank.rds")
+
+```
+
+```{r}
+get_split_pos.1(scrna, "CLEC12A", "Mono")
+```
+
+```{r}
+VlnPlot(scrna, "CLEC12A")
+```
+
+
+```{r}
+get_split_pos.1(scrna.1, "CD19", "B")
+get_split_pos.1(scrna.1, "CD79A", "B")
+
+get_split_pos.1(scrna.1, "CD14", "Mono")
+get_split_pos.1(scrna.1, "S100A12", "Mono")
+
+df.b.1 <- data.frame()
+for (gene in c(rownames(makers.b[makers.b$avg_log2FC > 0, ])[1:50], "CD19", "CD24")) {
+  df.s <- get_split_pos.1(scrna, gene, "B")
+  df.b.1 <- rbind(df.b.1, df.s)
+}
+
+df.b.1[order(df.b.1$x.margin.adj, decreasing = T), ]
+```
+
+
+```{r}
+makers.mono["WLS",]
+makers.mono["VSTM1",]
+makers.b
+makers.b["CD79A",]
+makers.b["CD22",]
+get_split_pos.1(scrna, "CD14", "Mono")
+get_split_pos.1(scrna, "AC245128.3", "Mono")
+get_split_pos.1(scrna, "CD79A", "B")
+get_split_pos.1(scrna, "CD22", "B")
+get_split_pos.1(scrna, "CD19", "B")
+get_split_pos.1(scrna, "LINC00926", "B")
+
+sum(scrna@active.ident == "B")
+
+hist(as.numeric(scrna@assays$SCT@data["CD14", ]))
+hist(as.numeric(scrna@assays$SCT@data["WLS", ]))
+
+VlnPlot(scrna, "SLC11A1")
+
+
+df.b.1 <- data.frame()
+for (gene in c(rownames(makers.b[makers.b$avg_log2FC > 0, ])[1:50], "CD19", "CD24")) {
+  df.s <- get_split_pos.1(scrna, gene, "B")
+  df.b.1 <- rbind(df.b.1, df.s)
+}
+
+df.b.1[order(df.b.1$x.margin.adj, decreasing = T), ]
+
+
+df.mono.1 <- data.frame()
+pb <- txtProgressBar(style=3)
+i <- 1
+for (gene in rownames(makers.mono[makers.mono$avg_log2FC > 0, ])) {
+  df.s <- get_split_pos.1(scrna, gene, "Mono", step = 0.1)
+  df.mono.1 <- rbind(df.mono.1, df.s)
+  setTxtProgressBar(pb, i/length(rownames(makers.mono[makers.mono$avg_log2FC > 0, ])))
+  i <- i + 1
+}
+close(pb)
+
+df.mono.1 <- df.mono.1[order(df.mono.1$x.margin.adj, decreasing = T), ]
+df.mono.1
+
+# get_split_pos.1(scrna, "WLS", "Mono")
+
+get_split_pos.1(scrna, "AC245128.3", "Mono")
+
+DefaultAssay(scrna) <- "SCT"
+df.mono.1
+VlnPlot(scrna, "CPSF2")
+```
+
+```{r}
+get_split_pos.1(scrna, "CD22", "B", step = 0.1)
+get_split_pos.1(scrna, "CD19", "B", step = 0.1)
+get_split_pos.1(scrna, "CD79A", "B", step = 0.1)
+get_split_pos.1(scrna, "CD14", "Mono", step = 0.1)
+get_split_pos.1(scrna, "CLEC12A", "Mono", step = 0.1)
+VlnPlot(scrna, "CPSF2")
+```
+
+
+
+```{r}
+matrix_cometsc <- Seurat::GetAssayData(citeseq, slot = "data", assay = "SCT") #gets the normalized count matrix
+
+library(Matrix)
+write(colnames(matrix_cometsc), file = "colnames.txt")
+write(rownames(matrix_cometsc), file = "rownames.txt")
+writeMM(matrix_cometsc, file = "sparsematrix.txt")
+
+write.table(matrix_cometsc, file= "citeseq.matrix.1.txt", row.names=TRUE, col.names=TRUE, sep = "\t", quote = FALSE)
+
+umap_cometsc <- Embeddings(citeseq, reduction = "wnn.umap")
+write.table(umap_cometsc, file="vis.txt", row.names=TRUE, col.names=FALSE, sep = "\t", quote = FALSE)
+
+citeseq@meta.data$numer_id <- as.numeric(citeseq@active.ident)
+Idents(citeseq) <- "numer_id"
+cluster_cometsc <- noquote(as.matrix(Idents(citeseq))) # Get the active cluster identities. Should be numbers. COMET does not take Non-Number cluster names.
+
+write.table(cluster_cometsc, file = "citeseq.clusters.txt", row.names=TRUE, col.names=FALSE, sep = "\t", quote = FALSE)
+write.table(top50_markers_MAST_res1_pct25$gene, file = "genes.txt", col.names = F, row.names = F, quote = F)
+```
+
+
+
+```{r}
+scrna <- citeseq
+rm(citeseq)
+id <- "B"
+gene <- "CD79A"
+get_split_pos.1 <- function(scrna, gene, id, step = 0.01) {
+  data.mat.surf <- data.frame(exp = scrna@assays$RNA@data[gene,],
+                              id = as.character(scrna@active.ident))
+  gene.prauc <- data.frame(x.val <- c(),
+                           margin <- c())
+  data.id <- data.mat.surf[data.mat.surf$id == id,]
+  data.other <- data.mat.surf[data.mat.surf$id != id,]
+
+  x.max <- max(data.id$exp)
+  x.min <- min(data.id$exp)
+  x.num <- 1/step
+  
+  x.factor <- round((mean(data.id$exp) + 1)/(mean(data.other$exp) + 1), 3)
+  # x.factor.size <- length(data.other$id)/length(data.id$id)
+  x.factor.size <- 100*length(data.id$id)/length(data.mat.surf$id)
+  
+
+  for (x.val in seq(x.min, x.max, (x.max - x.min)/x.num)) {
+    tp <- sum(data.id$exp >= x.val)
+    fp <- sum(data.other$exp >= x.val)
+    # tn <- sum(data.other$exp < x.val)
+    # fn <- sum(data.id$exp < x.val)
+
+    # if (length(data.id$id) <= length(data.other$id)) {
+    #   x.margin <- tp - fp*x.factor.size
+    # }
+    # else{
+    #   x.margin <- tp - fp*x.factor.size
+    # }
+    # x.margin <- x.factor*x.margin
+    
+    # x.margin <- (tp*x.factor.size - fp)*(x.factor**2)
+    x.margin <- (tp - fp*x.factor.size)*(x.factor**2)
+    # x.margin.adj <- x.margin/((sum(data.other[data.other$exp > x.val,]$exp) + 50)*x.val)
+    # x.margin.adj <- x.margin/(10**((max(data.mat.surf$exp) - x.val)))
+    # x.margin.adj <- (tp - fp*x.factor.size)*(x.factor**2)/(x.val**3)
+    # x.margin.adj <- x.margin**(max(data.mat.surf$exp) - x.val)/data.other.sum
+    
+    # x.margin.adj <- x.margin*(sum(data.id[data.id$exp >= x.val,]$exp - x.val))/(x.val**5)
+    # x.margin.adj <- x.margin*(id.pr**2)/(x.val**4)
+    de <- data.frame(x.val, x.margin, "+", tp, fp)
+    # de <- data.frame(x.val, x.margin, x.margin.adj, "+", tp, fp)
+    gene.prauc <- rbind(gene.prauc, de)
+  }
+  gene.prauc <- gene.prauc[order(gene.prauc$x.margin, gene.prauc$x.val, decreasing = T),]
+  x.split <- gene.prauc[1,]
+  
+  x.margin.adj <- x.split$x.margin/((sum(data.other[data.other$exp > x.split$x.val,]$exp) + 5)*x.split$x.val)
+  x.split$x.margin.adj <- x.margin.adj
+  
+  rownames(x.split) <- paste(gene)
+  return(x.split)
+}
+```
+
+
+```{r}
+
+id <- "B"
+gene <- "CD79A"
+get_split_pos.2 <- function(scrna, gene, id) {
+  data.mat.surf <- data.frame(exp = scrna@assays$SCT@data[gene,],
+                              id = as.character(scrna@active.ident))
+  data.mat.surf <- data.mat.surf[order(data.mat.surf$exp, decreasing = T), ]
+  
+  list.id <- data.mat.surf$id
+  
+  id.size <- sum(data.mat.surf$id == id)
+  
+  K = sum(data.mat.surf$id == "B")
+  N = length(data.mat.surf$id)
+  
+  tp <- 0
+  fp <- 0
+  tp.fp
+  x.seq <- 1
+  
+  # for (x.seq in 1:id.size) {
+  #   ifelse(list.id[x.seq] == id, tp <- tp +1, fp <- fp +1)
+  #   if (tp >= 0.1*id.size) {
+  #     
+  #   }
+  # }
+
+}
+
+
+get_hgp(1, k, N, K, n+1)
+
+```
 
 
 ```{r}
@@ -90,7 +597,6 @@ p2 <- FeaturePlot(cbmc, "CD8") + ggtitle("CD19 RNA")
 
 rownames(cbmc[["ADT"]])
 
-UMAPPlot(cbmc, label = T)
 for (gene in intersect(rownames(cbmc[["ADT"]]), rownames(cbmc[["RNA"]]))) {
   print(FeaturePlot(cbmc, gene, cols = c("lightgrey", "darkgreen")))
 }
@@ -106,17 +612,15 @@ p1 | p2
 ```{r warning=F}
 Idents(cbmc) <- "seurat_clusters"
 
-markers.wilcox <- list()
-markers.prauc <- list()
-for (x.cluster in seq(1,8)) {
-  markers <- FindMarkers(cbmc, ident.1 = x.cluster, features = intersect(rownames(cbmc[["RNA"]]), markers.allset))
-  markers <- markers[order(markers$avg_log2FC, decreasing = T),]
-  markers.wilcox[[x.cluster]] <- markers
-  # markers.i <- identify_single_marker(cbmc, x.cluster, markers.allset)
-  # markers.prauc[[x.cluster]] <- markers.i
-}
-
-
+# markers.wilcox <- list()
+# markers.prauc <- list()
+# for (x.cluster in seq(1,8)) {
+#   markers <- FindMarkers(cbmc, ident.1 = x.cluster, features = intersect(rownames(cbmc[["RNA"]]), markers.allset))
+#   markers <- markers[order(markers$avg_log2FC, decreasing = T),]
+#   markers.wilcox[[x.cluster]] <- markers
+#   markers.i <- identify_single_marker(cbmc, x.cluster, markers.allset)
+#   markers.prauc[[x.cluster]] <- markers.i
+# }
 
 # save(markers.wilcox, file = "first8.seuratDE.markers.rds")
 # save(markers.prauc, file = "first8.prauc.markers.rds")
@@ -125,134 +629,9 @@ load(file = "first8.seuratDE.markers.rds")
 load(file = "first8.prauc.markers.rds")
 
 Idents(cbmc) <- "seurat_clusters"
-markers.12 <- FindMarkers(cbmc, ident.1 = "12", features = intersect(rownames(cbmc[["RNA"]]), markers.allset), assay = "RNA")
-markers.12 <- markers.12[order(markers.12$avg_log2FC, decreasing = T), ]
-df.12 <- data.frame()
-for (gene in rownames(markers.12)) {
-  df.s <- get_split_pos.1(cbmc, gene, "12", step = 0.1)
-  df.12 <- rbind(df.12, df.s)
-}
-df.12[order(df.12$x.margin.adj, decreasing = T), ]
-
-markers.wilcox[[6]]
-markers.prauc[[6]]
-
-
-sum(cbmc@active.ident == "6")
-df.6.1 <- data.frame()
-for (gene in rownames(markers.wilcox[[6]])[1:30]) {
-  df.s <- get_split_pos.1(cbmc, gene, "6", step = 0.1)
-  df.6.1 <- rbind(df.6.1, df.s)
-}
-
-markers.wilcox[[6]]
-df.6.1[order(df.6.1$x.margin.adj, decreasing = T), ]
-df.6[order(df.6$x.margin, decreasing = T), ]
-
-
-data.mat.surf <- data.frame(exp = cbmc@assays$RNA@data["CD19",],
-                            id = as.character(cbmc@active.ident))
-
-data.mat.surf.id <- data.mat.surf[data.mat.surf$id == "6", ]
-data.mat.surf.o <- data.mat.surf[data.mat.surf$id != "6", ]
-sum(data.mat.surf.id$exp > 1.22319654328239)/length(data.mat.surf.id$exp)
-sum(data.mat.surf.o$exp <= 1.22319654328239)/length(data.mat.surf.o$exp)
-
-data.mat.surf[data.mat.surf$exp < 1.22319654328239, ]$exp <- 0
-data.mat.surf[data.mat.surf$exp >= 1.22319654328239, ]$exp <- 1
-
-
-df.matrix <- get_gene_PRAUC_matrix(cbmc, "CD34", "12", step = 0.1)
-
-plot(df.matrix$x.rec, df.matrix$x.pre)
-
-identify_single_marker
-
+markers.i <- identify_single_marker(cbmc, "12", markers.allset)
 
 ```
-
-
-```{r}
-
-get_split_pos.1 <- function(scrna, gene, id, step = 0.01) {
-  data.mat.surf <- data.frame(exp = scrna@assays$RNA@data[gene,],
-                              id = as.character(scrna@active.ident))
-  gene.prauc <- data.frame(x.val <- c(),
-                           margin <- c())
-  data.id <- data.mat.surf[data.mat.surf$id == id,]
-  data.other <- data.mat.surf[data.mat.surf$id != id,]
-
-  x.max <- max(data.id$exp)
-  x.min <- min(data.id$exp)
-  x.num <- 1/step
-  
-  x.factor <- (mean(data.id$exp) + 0.001)/(mean(data.other$exp) + 0.001)
-  
-  x.size.factor <- 10*(length(data.id$exp)/length(data.other$exp))
-
-  for (x.val in seq(x.min, x.max, (x.max - x.min)/x.num)) {
-    tp <- sum(data.id$exp > x.val)
-    fp <- sum(data.other$exp > x.val)
-    tn <- sum(data.other$exp <= x.val)
-    fn <- sum(data.id$exp <= x.val)
-    
-    x.margin <- tp - fp#*x.size.factor
-    # x.margin <- tp - fp*x.size.factor
-    # x.margin <- (x.factor**2)*x.margin
-    
-    # x.margin.adj <- x.margin*x.factor
-    x.margin.adj <- x.margin*(tp/length(data.id$exp))*(tn/length(data.other$exp))*(x.factor**2)
-    
-    de <- data.frame(x.val, x.margin, x.margin.adj, tp, fp, "+")
-    gene.prauc <- rbind(gene.prauc, de)
-  }
-  gene.prauc <- gene.prauc[order(gene.prauc$x.margin, decreasing = T),]
-  x.split <- gene.prauc[1,]
-  rownames(x.split) <- paste(gene)
-  return(x.split)
-}
-
-
-get_split_neg.1 <- function(scrna, gene, id, step = 0.01) {
-  data.mat.surf <- data.frame(exp = scrna@assays$RNA@data[gene,],
-                              id = as.character(scrna@active.ident))
-  gene.prauc <- data.frame(x.val <- c(),
-                           margin <- c())
-  data.id <- data.mat.surf[data.mat.surf$id == id,]
-  data.other <- data.mat.surf[data.mat.surf$id != id,]
-
-  x.max <- max(data.id$exp)
-  x.min <- min(data.id$exp)
-  x.num <- 1/step
-  
-  x.factor <- (mean(data.other$exp) + 0.001)/(mean(data.id$exp) + 0.001)
-  
-  x.size.factor <- 10*(length(data.id$exp)/length(data.other$exp))
-
-  for (x.val in seq(x.min, x.max, (x.max - x.min)/x.num)) {
-    tp <- sum(data.id$exp < x.val)
-    fp <- sum(data.other$exp < x.val)
-    tn <- sum(data.other$exp >= x.val)
-    fn <- sum(data.id$exp >= x.val)
-    
-    x.margin <- tp - fp#*x.size.factor
-    # x.margin <- tp - fp*x.size.factor
-    # x.margin <- (x.factor**2)*x.margin
-    
-    # x.margin.adj <- x.margin*x.factor
-    x.margin.adj <- x.margin*(tp/length(data.id$exp))*(tn/length(data.other$exp))*(x.factor**2)
-    
-    de <- data.frame(x.val, x.margin, x.margin.adj, tp, fp, "+")
-    gene.prauc <- rbind(gene.prauc, de)
-  }
-  gene.prauc <- gene.prauc[order(gene.prauc$x.margin, decreasing = T),]
-  x.split <- gene.prauc[1,]
-  rownames(x.split) <- paste(gene)
-  return(x.split)
-}
-```
-
-
 
 
 
@@ -394,7 +773,7 @@ VlnPlot(cbmc, df.prauc.pos)
 
 get_split_pos.1 <- function(scrna, gene, id, step = 0.01) {
   data.mat.surf <- data.frame(exp = scrna@assays$RNA@data[gene,],
-                              id = as.character(makeid(scrna, id)@active.ident))
+                              id = as.character(scrna@active.ident))
   gene.prauc <- data.frame(x.val <- c(),
                            margin <- c())
   data.id <- data.mat.surf[data.mat.surf$id == id,]
@@ -422,7 +801,8 @@ get_split_pos.1 <- function(scrna, gene, id, step = 0.01) {
     else{
       x.margin <- tp - fp
     }
-    x.margin <- x.factor*x.margin
+    x.margin <- (x.factor**2)*x.margin
+    
     de <- data.frame(x.val, x.margin, "+")
     gene.prauc <- rbind(gene.prauc, de)
   }
@@ -701,8 +1081,28 @@ for (x.cluster in seq(1,8)) {
   markers.i <- markers.max_recall[[x.cluster]]
   print(grid_plot(cbmc, markers.i, x.cluster))
 }
+
+
 ```                                                                                                                                                                                               
 
+```{r}
+matrix_cometsc <- Seurat::GetAssayData(so) #gets the normalized count matrix
+write.table(as.matrix(matrix_cometsc), file= "markers.txt", row.names=TRUE, col.names=TRUE, sep = "\t", quote = FALSE)
+
+umap_cometsc <- Embeddings(citeseq, reduction = "wnn.umap")
+write.table(umap_cometsc, file="citeseq.vis.txt", row.names=TRUE, col.names=FALSE, sep = "\t", quote = FALSE)
+
+Idents(citeseq) <- "celltype.l1"
+
+cluster_cometsc <- noquote(as.matrix(Idents(citeseq))) # Get the active cluster identities. Should be numbers. COMET does not take Non-Number cluster names.
+
+write.table(cluster_cometsc, file = "citeseq.clusters.txt", row.names=TRUE, col.names=FALSE, sep = "\t", quote = FALSE)
+
+DefaultAssay(citeseq) <- "SCT"
+write.table(rownames(citeseq[["SCT"]]), file = "citeseq.genes.txt", col.names = F, row.names = F, quote = F)
+
+
+```
 
 
 
