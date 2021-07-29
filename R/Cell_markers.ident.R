@@ -949,4 +949,157 @@ get_split_pos.1 <- function(scrna, gene, id, step = 0.01) {
   return(x.split)
 }
 
+get_split_pos.2 <- function(scrna, gene, id, step = 0.01) {
+  data.mat.surf <- data.frame(exp = scrna@assays$RNA@data[gene,],
+                              id = as.character(scrna@active.ident))
+  gene.prauc <- data.frame(x.val <- c(),
+                           margin <- c())
+  data.id <- data.mat.surf[data.mat.surf$id == id,]
+  data.other <- data.mat.surf[data.mat.surf$id != id,]
+  data.id.l <- nrow(data.id)
+  data.o.l <- nrow(data.other)
+  data.all.l <- nrow(data.mat.surf)
+
+  x.max <- max(data.id$exp)
+  x.min <- min(data.id$exp)
+  x.num <- 1/step
+
+  x.factor <- (mean(data.id$exp) + 0.001)/(mean(data.other$exp) + 0.001)
+
+  x.size.factor <- 10*(length(data.id$exp)/length(data.other$exp))
+
+  for (x.val in seq(x.min, x.max, (x.max - x.min)/x.num)) {
+    tp <- sum(data.id$exp > x.val)
+    fp <- sum(data.other$exp > x.val)
+    tn <- sum(data.other$exp <= x.val)
+    fn <- sum(data.id$exp <= x.val)
+    data.i.a <- data.id[data.id$exp > x.val, ]
+    data.o.a <- data.other[data.other$exp > x.val, ]
+    data.i.b <- data.id[data.id$exp <= x.val, ]
+    data.o.b <- data.other[data.other$exp <= x.val, ]
+
+    x.margin <- sum((data.i.a$exp - x.val))*nrow(data.o.b) +
+      sum((x.val -data.o.b$exp))*nrow(data.i.a) -
+      sum((data.o.a$exp - x.val))*nrow(data.o.b)
+    x.margin <- x.margin/data.all.l
+
+    # x.margin <- sum((data.id[data.id$exp > x.val, ]$exp - x.val))*length(data.other[data.other$exp <x.val, ]$id) +
+    #   sum((x.val - data.other[data.other$exp <x.val, ]$exp))*length(data.id[data.id$exp > x.val, ]$id) -
+    #   sum((data.other[data.other$exp > x.val, ]$exp - x.val))*length(data.other[data.other$exp <x.val, ]$id)
+
+    x.margin.adj <- x.margin*(tp/data.id.l)*(tn/data.o.l)*(x.factor**2)
+
+    de <- data.frame(x.val, x.margin, x.margin.adj, tp, fp, "+")
+    gene.prauc <- rbind(gene.prauc, de)
+  }
+  gene.prauc <- gene.prauc[order(gene.prauc$x.margin, decreasing = T),]
+  x.split <- gene.prauc[1,]
+  rownames(x.split) <- paste(gene)
+  return(x.split)
+}
+
+
+get_split_pos.1 <- function(scrna, gene, id, step = 0.01) {
+  data.mat.surf <- data.frame(exp = scrna@assays$RNA@data[gene,],
+                              id = as.character(scrna@active.ident))
+  gene.prauc <- data.frame(x.val <- c(),
+                           margin <- c())
+  data.id <- data.mat.surf[data.mat.surf$id == id,]
+  data.other <- data.mat.surf[data.mat.surf$id != id,]
+
+  x.max <- max(data.id$exp)
+  x.min <- min(data.id$exp)
+  x.num <- 1/step
+
+  x.factor <- (mean(data.id$exp) + 0.001)/(mean(data.other$exp) + 0.001)
+
+  x.size.factor <- 10*(length(data.id$exp)/length(data.other$exp))
+
+  for (x.val in seq(x.min, x.max, (x.max - x.min)/x.num)) {
+    tp <- sum(data.id$exp > x.val)
+    fp <- sum(data.other$exp > x.val)
+    tn <- sum(data.other$exp <= x.val)
+    fn <- sum(data.id$exp <= x.val)
+
+    x.margin <- tp - fp#*x.size.factor
+    # x.margin <- tp - fp*x.size.factor
+    # x.margin <- (x.factor**2)*x.margin
+
+    # x.margin.adj <- x.margin*x.factor
+    x.margin.adj <- x.margin*(tp/length(data.id$exp))*(tn/length(data.other$exp))*(x.factor**2)
+
+    de <- data.frame(x.val, x.margin, x.margin.adj, tp, fp, "+")
+    gene.prauc <- rbind(gene.prauc, de)
+  }
+  gene.prauc <- gene.prauc[order(gene.prauc$x.margin, decreasing = T),]
+  x.split <- gene.prauc[1,]
+  rownames(x.split) <- paste(gene)
+  return(x.split)
+}
+
+
+get_split_neg.1 <- function(scrna, gene, id, step = 0.01) {
+  data.mat.surf <- data.frame(exp = scrna@assays$RNA@data[gene,],
+                              id = as.character(scrna@active.ident))
+  gene.prauc <- data.frame(x.val <- c(),
+                           margin <- c())
+  data.id <- data.mat.surf[data.mat.surf$id == id,]
+  data.other <- data.mat.surf[data.mat.surf$id != id,]
+
+  x.max <- max(data.id$exp)
+  x.min <- min(data.id$exp)
+  x.num <- 1/step
+
+  x.factor <- (mean(data.other$exp) + 0.001)/(mean(data.id$exp) + 0.001)
+
+  x.size.factor <- 10*(length(data.id$exp)/length(data.other$exp))
+
+  for (x.val in seq(x.min, x.max, (x.max - x.min)/x.num)) {
+    tp <- sum(data.id$exp < x.val)
+    fp <- sum(data.other$exp < x.val)
+    tn <- sum(data.other$exp >= x.val)
+    fn <- sum(data.id$exp >= x.val)
+
+    x.margin <- tp - fp#*x.size.factor
+    # x.margin <- tp - fp*x.size.factor
+    # x.margin <- (x.factor**2)*x.margin
+
+    # x.margin.adj <- x.margin*x.factor
+    x.margin.adj <- x.margin*(tp/length(data.id$exp))*(tn/length(data.other$exp))*(x.factor**2)
+
+    de <- data.frame(x.val, x.margin, x.margin.adj, tp, fp, "-")
+    gene.prauc <- rbind(gene.prauc, de)
+  }
+  gene.prauc <- gene.prauc[order(gene.prauc$x.margin, decreasing = T),]
+  x.split <- gene.prauc[1,]
+  rownames(x.split) <- paste(gene)
+  return(x.split)
+}
+
+
+identify_single_marker.1 <- function(scrna, id, geneset = NULL, step = 0.01){
+  if (!is.null(geneset)) {
+    if (length(intersect(rownames(scrna[["RNA"]]), geneset)) == 0) {
+      print("Genes not find.")
+    }else{
+      markers.de <- FindMarkers(scrna, ident.1 = id, features = intersect(rownames(scrna[["RNA"]]), geneset), test.use = "t")
+    }
+  }else{
+    markers.de <- FindMarkers(scrna, ident.1 = id, test.use = "t")
+  }
+  markers.de <- markers.de[markers.de$p_val < 0.05, ]
+  markers.pos <- markers.de[markers.de$avg_log2FC > 0, ]
+  markers.neg <- markers.de[markers.de$avg_log2FC < 0, ]
+  df <- data.frame()
+  for (gene in rownames(markers.pos)) {
+    df.s <- get_split_pos.1(scrna, gene, id, step = step)
+    df <- rbind(df, df.s)
+  }
+  for (gene in rownames(markers.neg)) {
+    df.s <- get_split_neg.1(scrna, gene, id, step = step)
+    df <- rbind(df, df.s)
+  }
+  df <- df[order(df$x.margin.adj, decreasing = T), ]
+  return(df)
+}
 

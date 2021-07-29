@@ -12,228 +12,487 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-# .libPaths("~/R/x86_64-pc-linux-gnu-library/3.6")
 library(Seurat)
-library(dplyr, lib.loc = "/home/ronghui/anaconda3/envs/r4-real/lib/R/library")
-library(ggplot2, lib.loc = "/home/ronghui/anaconda3/envs/r4-real/lib/R/library")
-suppressMessages(library(cowplot, lib.loc = "/home/ronghui/anaconda3/envs/r4-real/lib/R/library"))
-suppressMessages(library(randomForest, lib.loc = "/home/ronghui/anaconda3/envs/r4-real/lib/R/library"))
-suppressMessages(library(patchwork))
-suppressMessages(library(data.table))
-suppressMessages(library(MLmetrics))
-source("/home/ronghui/project/scMarkerDetect/R/Cell_markers.ident.R")
-source("/home/ronghui/project/scMarkerDetect/enhance-R-master/enhance.R")
-# library(scMarkerDetect)
+library(patchwork)
+mca.matrix <- readRDS(file = "/home/ronghui/project/scMarkerDetect/MCA/MCA_merged_mat.rds")
+mca.metadata <- read.csv(file = "/home/ronghui/project/scMarkerDetect/MCA/MCA_All-batch-removed-assignments.csv", row.names = 1)
+
+# 3896.0100681384406 minutes
+
 ```
 
 
 
 ```{r pressure, echo=FALSE, fig.height=9, fig.width=12}
-markers.allset <- read.csv(file=file.path("/home/ronghui/project/scMarkerDetect/gene_db/proteinatlas.ihc.csv"))[ ,1]
+mca <- CreateSeuratObject(counts = mca.matrix, meta.data = mca.metadata, project = "MouseCellAtlas")
+# Only keep annotated cells
+mca <- subset(mca, cells = names(which(!is.na(mca$ClusterID))))
+# Leaves us with 242k cells
+Idents(mca) <- "Tissue"
+mca <- NormalizeData(mca, normalization.method = "LogNormalize", scale.factor = 10000)
+mca.spleen <- subset(mca, idents = "Spleen")
 
-# markers.allset <- read.csv(file=file.path("/home/ronghui/project/dbmaker/abcam.tr.csv"))[ ,1]
-# markers.allset <- unique(markers.allset)
-# 
-# markers.allset <- gsub(" ", "", markers.allset)
-# # markers.allset <- gsub("-", "", markers.allset)
-# 
-# 
-# cbmc.rna <- as.sparse(read.csv(file = "GSE100866_CBMC_8K_13AB_10X-RNA_umi.csv.gz", sep = ",",
-#     header = TRUE, row.names = 1))
-# 
-# cbmc.rna <- CollapseSpeciesExpressionMatrix(cbmc.rna)
-# 
-# 
-# markers.allset <- intersect(rownames(cbmc.rna) ,markers.allset)
-# 
-# length(markers.allset)
-
-markers.allset <- c(as.character(markers.allset))
-markers.allset <- unique(markers.allset)
-```
-
-# Seurat example
-
-```{r}
-# DefaultAssay(cbmc) <- "RNA"
-# DefaultAssay(cbmc)
-# 
-# cbmc <- NormalizeData(cbmc)
-# cbmc <- FindVariableFeatures(cbmc)
-# cbmc <- ScaleData(cbmc)
-# cbmc <- RunPCA(cbmc, verbose = FALSE)
-# cbmc <- FindNeighbors(cbmc, dims = 1:30)
-# cbmc <- FindClusters(cbmc, resolution = 0.8, verbose = FALSE)
-# cbmc <- RunUMAP(cbmc, dims = 1:30)
-
-load("/home/ronghui/project/dbmaker/seurat.cbmc.rds")
-DimPlot(cbmc, label = TRUE)
+unique(mca.spleen@active.ident)
+rm(mca.matrix, mca.metadata)
 ```
 
 
 
+
 ```{r}
-# # Normalize ADT data,
-# DefaultAssay(cbmc) <- "ADT"
-# cbmc <- NormalizeData(cbmc, normalization.method = "CLR", margin = 2)
-# DefaultAssay(cbmc) <- "RNA"
-# 
-# # Note that the following command is an alternative but returns the same result
-# cbmc <- NormalizeData(cbmc, normalization.method = "CLR", margin = 2, assay = "ADT")
+cell.anno <- read.csv(file=file.path("/home/ronghui/project/scMarkerDetect/MCA_CellAssignments.csv"))
+cell.spleen <- cell.anno[grep("Spleen", cell.anno$Cell.name), ]
+mca.spleen@meta.data$anno <- cell.spleen[match(colnames(mca.spleen), cell.spleen$Cell.name), ]$Annotation
+Idents(mca.spleen) <- "anno"
+table(mca.spleen$anno, mca.spleen$anno.n)
+```
 
-# Now, we will visualize CD14 levels for RNA and protein By setting the default assay, we can
-# visualize one or the other
-DefaultAssay(cbmc) <- "ADT"
-p1 <- FeaturePlot(cbmc, "CD19", cols = c("lightgrey", "darkgreen")) + ggtitle("CD19 protein")
-DefaultAssay(cbmc) <- "RNA"
-p2 <- FeaturePlot(cbmc, "CD19") + ggtitle("CD19 RNA")
 
-rownames(cbmc[["ADT"]])
+```{r}
+De.spleen <-FindMarkers(mca.spleen, ident.1 = "Marginal zone B cell(Spleen)", test.use = "t")
 
-UMAPPlot(cbmc, label = T)
-for (gene in intersect(rownames(cbmc[["ADT"]]), rownames(cbmc[["RNA"]]))) {
-  print(FeaturePlot(cbmc, gene, cols = c("lightgrey", "darkgreen")))
+De.spleen <- subset(De.spleen, p_val < 0.05)
+
+get_split_pos.1(mca.spleen, "Cd22", "Marginal zone B cell(Spleen)")
+
+df.b <- data.frame()
+for (gene in rownames(De.spleen)) {
+  df.s <- get_split_pos.2(mca.spleen, gene, "Marginal zone B cell(Spleen)", step = 0.01)
+  df.b <- rbind(df.b, df.s)
+}
+df.b <- df.b[df.b$x.val != 0, ]
+df.b$x.margin.adj.a <- df.b$x.margin.adj/df.b$x.val
+df.b <- df.b[order(df.b$x.margin.adj, decreasing = T), ]
+
+
+De.Macrophage <-FindMarkers(mca.spleen, ident.1 = "Macrophage(Spleen)", test.use = "t")
+
+De.Macrophage <- subset(De.Macrophage, p_val < 0.05)
+match("Cd14", rownames(De.Macrophage))
+
+df.m <- data.frame()
+for (gene in rownames(De.Macrophage)) {
+  df.s <- get_split_pos.2(mca.spleen, gene, "Macrophage(Spleen)", step = 0.01)
+  df.m <- rbind(df.m, df.s)
+}
+df.m <- df.m[df.m$x.val != 0, ]
+df.m$x.margin.adj.a <- df.m$x.margin.adj/df.m$x.val
+df.m <- df.m[order(df.m$x.margin.adj, decreasing = T), ]
+df.m
+match("Cd14", rownames(De.Macrophage))
+match("Adgre1", rownames(De.Macrophage))
+match("Cd14", rownames(df.m))
+
+get_split_pos.2(mca.spleen, "Adgre1", "Macrophage(Spleen)")
+VlnPlot(mca.spleen,"Adgre1")
+
+De.tcell <-FindMarkers(mca.spleen, ident.1 = "T cell(Spleen)", test.use = "t")
+
+De.tcell <- subset(De.tcell, p_val < 0.05)
+
+df.t <- data.frame()
+for (gene in rownames(De.tcell)) {
+  df.s <- get_split_pos.2(mca.spleen, gene, "T cell(Spleen)", step = 0.01)
+  df.t <- rbind(df.t, df.s)
+}
+df.t <- df.t[df.t$x.val != 0, ]
+df.t$x.margin.adj.a <- df.t$x.margin.adj/df.t$x.val
+df.t <- df.t[order(df.t$x.margin.adj, decreasing = T), ]
+df.t
+
+table(mca.spleen$anno, mca.spleen$anno.n)
+df.b[order(df.b$x.margin.adj, decreasing = T), ]
+VlnPlot(mca.spleen,"Cd19")
+get_split_pos.1(mca.spleen, "Cd14", "Macrophage(Spleen)", step = 0.1)
+Idents(mca.spleen) <- "anno"
+pc1 <- FetchData(object = mca.spleen, vars = c('Ms4a1', "Cd14", 'ident'))
+pc1
+colnames(pc1) <- c("gene1", "gene2", "id")
+pc1$gene1 <- normalize(pc1$gene1)
+
+clusters <- c("T cell(Spleen)", "Macrophage(Spleen)", "Marginal zone B cell(Spleen)", "NK cell(Spleen)", "Dendritic cell_S100a4 high(Spleen)", "Dendritic cell_Siglech high(Spleen)")
+Idents(mca.spleen) <- "anno"
+
+markers.wilcox <- list()
+markers.t <- list()
+markers.MAST <- list()
+markers.LR <- list()
+for (x.cluster in clusters) {
+  markers <- FindMarkers(mca.spleen, ident.1 = x.cluster, test.use = "t")
+  markers.t[[x.cluster]] <- markers
+  
+  markers <- FindMarkers(mca.spleen, ident.1 = x.cluster, test.use = "wilcox")
+  markers.wilcox[[x.cluster]] <- markers
+  
+  markers <- FindMarkers(mca.spleen, ident.1 = x.cluster, test.use = "MAST")
+  markers.MAST[[x.cluster]] <- markers
+  
+  markers <- FindMarkers(mca.spleen, ident.1 = x.cluster, test.use = "LR")
+  markers.LR[[x.cluster]] <- markers
 }
 
-intersect(rownames(cbmc[["ADT"]]), rownames(cbmc[["RNA"]]))
+t.genes <- c(match("Cd3d", rownames(markers.t[["T cell(Spleen)"]])), 
+             match("Cd3e", rownames(markers.t[["T cell(Spleen)"]])), 
+             match("Cd3g", rownames(markers.t[["T cell(Spleen)"]])))
 
-# place plots side-by-side
-p1 | p2
+wilcox.genes <- c(match("Cd3d", rownames(markers.wilcox[["T cell(Spleen)"]])),
+                  match("Cd3e", rownames(markers.wilcox[["T cell(Spleen)"]])),
+                  match("Cd3g", rownames(markers.wilcox[["T cell(Spleen)"]])))
+
+mast.genes <- c(match("Cd3d", rownames(markers.MAST[["T cell(Spleen)"]])),
+                match("Cd3e", rownames(markers.MAST[["T cell(Spleen)"]])),
+                match("Cd3g", rownames(markers.MAST[["T cell(Spleen)"]])))
+
+v.genes <- c(match("Cd3d", rownames(df.t)),
+             match("Cd3e", rownames(df.t)),
+             match("Cd3g", rownames(df.t)))
+comet.genes <- c(24, 20, 2)
+
+
+# T cells in spleen 
+
+t.cells.genes <- c("Cd3d", "Cd3e", "Cd3g")
+
+genes <- read.csv(paste("/home/ronghui/project/scMarkerDetect/output/data/cluster_4_singleton_all_ranked.csv"))
+df <- data.frame()
+for (gene in t.cells.genes) {
+  df.s <- data.frame(t.test <- c(match(gene, rownames(markers.t[["T cell(Spleen)"]]))),
+                   wilcox.test <- c(match(gene, rownames(markers.wilcox[["T cell(Spleen)"]]))),
+                   mast <- c(match(gene, rownames(markers.MAST[["T cell(Spleen)"]]))),
+                   LR <- c(match(gene, rownames(markers.LR[["T cell(Spleen)"]]))),
+                   Comet <- c(match(toupper(gene), genes$gene_1)),
+                   SD <- c(match(gene, rownames(df.t)))
+                   )
+  colnames(df.s) <- c("T-test", "Wilcox", "MAST", "LR", "Comet", "SD")
+  rownames(df.s) <- paste(gene)
+  df <- rbind(df, df.s)
+}
+df <- as.data.frame(t(df))
+df$test.use <- rownames(df)
+df$test.use  <- factor(df$test.use, levels = c("T-test", "Wilcox", "MAST", "LR", "Comet", "SD"))
+
+library(ggplot2)
+
+for (gene in t.cells.genes) {
+  p <- ggplot(df, aes_string(x="test.use", y=paste(gene))) + 
+    geom_bar(stat = "identity") +
+  ggtitle(paste(gene, " in T cell (Spleen Tissue)"))
+  print(p)
+}
 ```
+
+```{r}
+# B cells in spleen 
+
+t.cells.genes <- c("Ly6d", "Cd19", "Cd74", "Cd79b", "Ms4a1")
+
+genes <- read.csv(paste("/home/ronghui/project/scMarkerDetect/output/data/cluster_5_singleton_all_ranked.csv"))
+df <- data.frame()
+for (gene in t.cells.genes) {
+  df.s <- data.frame(t.test <- c(match(gene, rownames(markers.t[["Marginal zone B cell(Spleen)"]]))),
+                   wilcox.test <- c(match(gene, rownames(markers.wilcox[["Marginal zone B cell(Spleen)"]]))),
+                   mast <- c(match(gene, rownames(markers.MAST[["Marginal zone B cell(Spleen)"]]))),
+                   LR <- c(match(gene, rownames(markers.LR[["Marginal zone B cell(Spleen)"]]))),
+                   Comet <- c(grep(toupper(gene), genes$gene_1)),
+                   SD <- c(match(gene, rownames(df.b)))
+                   )
+  colnames(df.s) <- c("T-test", "Wilcox", "MAST", "LR", "Comet", "SD")
+  rownames(df.s) <- paste(gene)
+  df <- rbind(df, df.s)
+}
+df <- as.data.frame(t(df))
+df$test.use <- rownames(df)
+df$test.use  <- factor(df$test.use, levels = c("T-test", "Wilcox", "MAST", "LR", "Comet", "SD"))
+
+library(ggplot2)
+
+for (gene in t.cells.genes) {
+  p <- ggplot(df, aes_string(x="test.use", y=paste(gene))) + 
+    geom_bar(stat = "identity") +
+  ggtitle(paste(gene, " in T cell (Spleen Tissue)"))
+  print(p)
+}
+
+markers.t[["Marginal zone B cell(Spleen)"]]$test.use <- "t.test"
+markers.t[["Marginal zone B cell(Spleen)"]]$celltype <- "T cell"
+markers.t[["Marginal zone B cell(Spleen)"]]$gene <- rownames(markers.t[["Marginal zone B cell(Spleen)"]])
+
+ptm <- proc.time()
+markers.t <- FindAllMarkers(mca.spleen, test.use = "t")
+proc.time() - ptm
+
+ptm <- proc.time()
+markers.wilcox <- FindAllMarkers(mca.spleen, test.use = "wilcox")
+proc.time() - ptm
+
+ptm <- proc.time()
+markers.MAST <- FindAllMarkers(mca.spleen, test.use = "MAST")
+proc.time() - ptm
+
+ptm <- proc.time()
+markers.LR <- FindAllMarkers(mca.spleen, test.use = "LR")
+proc.time() - ptm
+markers.LR[markers.LR$cluster == "Marginal zone B cell(Spleen)", ]
+
+df.b
+# CD74	IGKC
+
+expr.matrix <- mca.spleen@assays$RNA@data
+expr.matrix <- normalize(expr.matrix)
+```
+
+```{r}
+df <- data.frame(exp1 = normalize(mca.spleen@assays$RNA@data["Cd74",]),
+                 exp2 = normalize(mca.spleen@assays$RNA@data["Igkc",]),
+                 id = as.character(mca.spleen@active.ident))
+
+ggplot(df) +
+  geom_point(aes(exp1, exp2, col = id))
+
+expr.matrix.1 <-apply(expr.matrix, 1, normalize)
+
+max(expr.matrix.1[19,], na.rm=TRUE)
+```
+
+
+
+```{r}
+get_split_pos.1 <- function(scrna, gene, id, step = 0.01) {
+  data.mat.surf <- data.frame(exp = scrna@assays$RNA@data[gene,],
+                              id = as.character(scrna@active.ident))
+  gene.prauc <- data.frame(x.val <- c(),
+                           margin <- c())
+  data.id <- data.mat.surf[data.mat.surf$id == id,]
+  data.other <- data.mat.surf[data.mat.surf$id != id,]
+
+  x.max <- max(data.id$exp)
+  x.min <- min(data.id$exp)
+  x.num <- 1/step
+
+  x.factor <- (mean(data.id$exp) + 0.001)/(mean(data.other$exp) + 0.001)
+
+  x.size.factor <- 10*(length(data.id$exp)/length(data.other$exp))
+
+  for (x.val in seq(x.min, x.max, (x.max - x.min)/x.num)) {
+    tp <- sum(data.id$exp > x.val)
+    fp <- sum(data.other$exp > x.val)
+    tn <- sum(data.other$exp <= x.val)
+    fn <- sum(data.id$exp <= x.val)
+
+    x.margin <- tp - fp#*x.size.factor
+    # x.margin <- tp - fp*x.size.factor
+    # x.margin <- (x.factor**2)*x.margin
+
+    # x.margin.adj <- x.margin*x.factor
+    x.margin.adj <- x.margin*(tp/length(data.id$exp))*(tn/length(data.other$exp))*(x.factor**2)
+
+    de <- data.frame(x.val, x.margin, x.margin.adj, tp, fp, "+")
+    gene.prauc <- rbind(gene.prauc, de)
+  }
+  gene.prauc <- gene.prauc[order(gene.prauc$x.margin, decreasing = T),]
+  x.split <- gene.prauc[1,]
+  rownames(x.split) <- paste(gene)
+  return(x.split)
+}
+
+
+get_split_pos.2 <- function(scrna, gene, id, step = 0.01) {
+  data.mat.surf <- data.frame(exp = normalize(scrna@assays$RNA@data[gene,]),
+                              id = as.character(scrna@active.ident))
+  gene.prauc <- data.frame(x.val <- c(),
+                           margin <- c())
+  data.id <- data.mat.surf[data.mat.surf$id == id,]
+  data.other <- data.mat.surf[data.mat.surf$id != id,]
+  data.id.l <- nrow(data.id)
+  data.o.l <- nrow(data.other)
+  data.all.l <- nrow(data.mat.surf)
+
+  x.max <- 0
+  x.min <- 1
+  x.num <- 1/step
+
+  x.factor <- (mean(data.id$exp) + 0.001)/(mean(data.other$exp) + 0.001)
+
+  x.size.factor <- 10*(length(data.id$exp)/length(data.other$exp))
+
+  for (x.val in seq(0, 1, step)) {
+    tp <- sum(data.id$exp > x.val)
+    fp <- sum(data.other$exp > x.val)
+    tn <- sum(data.other$exp <= x.val)
+    fn <- sum(data.id$exp <= x.val)
+    data.i.a <- data.id[data.id$exp > x.val, ]
+    data.o.a <- data.other[data.other$exp > x.val, ]
+    data.i.b <- data.id[data.id$exp <= x.val, ]
+    data.o.b <- data.other[data.other$exp <= x.val, ]
+
+    x.margin <- sum((data.i.a$exp - x.val))*nrow(data.o.b) +
+      sum((x.val -data.o.b$exp))*nrow(data.i.a) -
+      sum((data.o.a$exp - x.val))*nrow(data.o.b)
+    x.margin <- x.margin/data.all.l
+
+    # x.margin <- sum((data.id[data.id$exp > x.val, ]$exp - x.val))*length(data.other[data.other$exp <x.val, ]$id) +
+    #   sum((x.val - data.other[data.other$exp <x.val, ]$exp))*length(data.id[data.id$exp > x.val, ]$id) -
+    #   sum((data.other[data.other$exp > x.val, ]$exp - x.val))*length(data.other[data.other$exp <x.val, ]$id)
+
+    x.margin.adj <- x.margin*(tp/data.id.l)*(tn/data.o.l)*(x.factor**2)
+
+    de <- data.frame(x.val, x.margin, x.margin.adj, tp, fp, "+")
+    gene.prauc <- rbind(gene.prauc, de)
+  }
+  gene.prauc <- gene.prauc[order(gene.prauc$x.margin, decreasing = T),]
+  x.split <- gene.prauc[1,]
+  rownames(x.split) <- paste(gene)
+  return(x.split)
+}
+
+get_split_pos.1 <- function(scrna, gene, id, step = 0.01) {
+  data.mat.surf <- data.frame(exp = scrna@assays$RNA@data[gene,],
+                              id = as.character(scrna@active.ident))
+  gene.prauc <- data.frame(x.val <- c(),
+                           margin <- c())
+  data.id <- data.mat.surf[data.mat.surf$id == id,]
+  data.other <- data.mat.surf[data.mat.surf$id != id,]
+
+  x.max <- max(data.id$exp)
+  x.min <- min(data.id$exp)
+  x.num <- 1/step
+
+  # x.factor <- (mean(data.id$exp) + 0.001)/(mean(data.other$exp) + 0.001)
+
+  x.size.factor <- 10*(length(data.id$exp)/length(data.other$exp))
+
+  for (x.val in seq(x.min, x.max, (x.max - x.min)/x.num)) {
+    tp <- sum(data.id$exp > x.val)
+    fp <- sum(data.other$exp > x.val)
+    tn <- sum(data.other$exp <= x.val)
+    fn <- sum(data.id$exp <= x.val)
+
+    x.margin <- tp - fp#*x.size.factor
+    # x.margin <- tp - fp*x.size.factor
+    # x.margin <- (x.factor**2)*x.margin
+
+    # x.margin.adj <- x.margin*x.factor
+    x.margin.adj <- x.margin*(tp/length(data.id$exp))*(tn/length(data.other$exp))*(x.factor**2)
+
+    de <- data.frame(x.val, x.margin, x.margin.adj, tp, fp, "+")
+    gene.prauc <- rbind(gene.prauc, de)
+  }
+  gene.prauc <- gene.prauc[order(gene.prauc$x.margin, decreasing = T),]
+  x.split <- gene.prauc[1,]
+  rownames(x.split) <- paste(gene)
+  return(x.split)
+}
+```
+
+
+```{r}
+scrna <- mca.spleen
+gene <- "Cd19"
+id <- "Marginal zone B cell(Spleen)"
+step <- 0.1
+x.val <- 1.213446
+
+get_split_pos.3 <- function(scrna, gene, id, step = 0.01) {
+  data.mat.surf <- data.frame(exp = scrna@assays$RNA@data[gene,],
+                              id = as.character(scrna@active.ident))
+  gene.prauc <- data.frame(x.val <- c(),
+                           margin <- c())
+  data.id <- data.mat.surf[data.mat.surf$id == id,]
+  data.other <- data.mat.surf[data.mat.surf$id != id,]
+
+  x.max <- max(data.id$exp)
+  x.min <- min(data.id$exp)
+  x.num <- 1/step
+
+  # x.factor <- (mean(data.id$exp) + 0.0001)/(mean(data.other$exp) + 0.0001)
+
+  # x.size.factor <- 10*(length(data.id$exp)/length(data.other$exp))
+
+  for (x.val in seq(x.min, x.max, (x.max - x.min)/x.num)) {
+    tp <- sum(data.id$exp > x.val)
+    fp <- sum(data.other$exp > x.val)
+    tn <- sum(data.other$exp <= x.val)
+    fn <- sum(data.id$exp <= x.val)
+
+    x.margin <- tp - fp#*x.size.factor
+    # x.margin <- tp - fp*x.size.factor
+    # x.margin <- (x.factor**2)*x.margin
+    x.factor <- (tp/nrow(data.id) + 0.0001)/(fp/nrow(data.other) + 0.0001)
+    # data.mat.surf[data.mat.surf$exp <= x.val, ]$exp <- 0
+    # data.mat.surf[data.mat.surf$exp > x.val, ]$exp <- 1
+    # 
+    # data.id <- data.mat.surf[data.mat.surf$id == id,]
+    # data.other <- data.mat.surf[data.mat.surf$id != id,]
+    
+    # x.factor <- (mean(data.id$exp) + 0.001)/(mean(data.other$exp) + 0.001)
+    # x.margin.adj <- x.margin*x.factor
+    x.margin.adj <- x.margin*(tp/length(data.id$exp))*(tn/length(data.other$exp))*(x.factor**2)
+
+    de <- data.frame(x.val, x.margin, x.margin.adj, tp, fp, "+")
+    gene.prauc <- rbind(gene.prauc, de)
+  }
+  gene.prauc <- gene.prauc[order(gene.prauc$x.margin, decreasing = T),]
+  x.split <- gene.prauc[1,]
+  rownames(x.split) <- paste(gene)
+  return(x.split)
+}
+
+normalize <- function(x, ...) {
+    return((x - min(x, ...)) /(max(x, ...) - min(x, ...)))
+}
+
+normalize(a)
+
+tp + fp
+log2(4.394653)
+
+get_split_pos.1(mca.spleen, "Cd19", "Marginal zone B cell(Spleen)")
+```
+
+
+
+
+```{r}
+mca.spleen <- FindVariableFeatures(mca.spleen)
+mca.spleen <- ScaleData(mca.spleen)
+mca.spleen <- RunPCA(mca.spleen, npcs = 100, ndims.print = 1:5, nfeatures.print = 5)
+```
+
+
+
 
 # Get single markers from Seurat and PRAUC
 
 ```{r warning=F}
-Idents(cbmc) <- "seurat_clusters"
-
-markers.wilcox <- list()
-markers.prauc <- list()
-for (x.cluster in seq(1,8)) {
-  markers <- FindMarkers(cbmc, ident.1 = x.cluster, features = intersect(rownames(cbmc[["RNA"]]), markers.allset))
-  markers <- markers[order(markers$avg_log2FC, decreasing = T),]
-  markers.wilcox[[x.cluster]] <- markers
-  # markers.i <- identify_single_marker(cbmc, x.cluster, markers.allset)
-  # markers.prauc[[x.cluster]] <- markers.i
-}
+matrix_cometsc <- Seurat::GetAssayData(mca.spleen) #gets the normalized count matrix
+write.table(as.matrix(matrix_cometsc), file= "exprs.txt", row.names=TRUE, col.names=TRUE, sep = "\t", quote = FALSE)
 
 
+umap_cometsc <- Embeddings(mca.spleen, reduction = "pca")
+umap_cometsc <- umap_cometsc[,c(1,2)]
+write.table(umap_cometsc, file="mca.spleen.vis.txt", row.names=TRUE, col.names=FALSE, sep = "\t", quote = FALSE)
 
-# save(markers.wilcox, file = "first8.seuratDE.markers.rds")
-# save(markers.prauc, file = "first8.prauc.markers.rds")
+umap_cometsc <- Embeddings(so, reduction = "umap")
+write.table(umap_cometsc, file="mca.spleen.vis.txt", row.names=TRUE, col.names=FALSE, sep = "\t", quote = FALSE)
 
-load(file = "first8.seuratDE.markers.rds")
-load(file = "first8.prauc.markers.rds")
+Idents(mca.spleen) <- "anno"
 
-Idents(cbmc) <- "seurat_clusters"
-markers.12 <- FindMarkers(cbmc, ident.1 = "12", features = intersect(rownames(cbmc[["RNA"]]), markers.allset), assay = "RNA")
-markers.12 <- markers.12[order(markers.12$avg_log2FC, decreasing = T), ]
-df.12 <- data.frame()
-for (gene in rownames(markers.12)) {
-  df.s <- get_split_pos.1(cbmc, gene, "12", step = 0.1)
-  df.12 <- rbind(df.12, df.s)
-}
-df.12[order(df.12$x.margin.adj, decreasing = T), ]
+mca.spleen@meta.data$anno.n <- as.numeric(Idents(mca.spleen))
 
-markers.wilcox[[6]]
-markers.prauc[[6]]
+Idents(mca.spleen) <- "anno.n"
+
+cluster_cometsc <- noquote(as.matrix((Idents(mca.spleen)))) # Get the active cluster identities. Should be numbers. COMET does not take Non-Number cluster names.
+
+write.table(cluster_cometsc, file = "mca.spleen.clusters.txt", row.names=TRUE, col.names=FALSE, sep = "\t", quote = FALSE)
 
 
-sum(cbmc@active.ident == "6")
-df.5.neg <- data.frame()
-for (gene in rownames(markers.wilcox[[5]])) {
-  df.s <- get_split_neg.1(cbmc, gene, "5", step = 0.1)
-  df.5.neg <- rbind(df.5.neg, df.s)
-}
-
-markers.wilcox[[6]]
-
-df.6 <- data.frame()
-for (gene in rownames(markers.wilcox[[6]])) {
-  df.s <- get_split_pos.1(cbmc, gene, "6", step = 0.1)
-  df.6 <- rbind(df.6, df.s)
-}
-df.6[order(df.6$x.margin.adj, decreasing = T), ]
+write.table(rownames(mca.spleen), file = "mca.spleen.genes.txt", col.names = F, row.names = F, quote = F)
 
 
-df.5.neg[order(df.5.neg$x.margin.adj, decreasing = T), ]
-df.6.1[order(df.6.1$x.margin.adj, decreasing = T), ]
-df.6[order(df.6$x.margin, decreasing = T), ]
+matrix_cometsc <- Seurat::GetAssayData(mca.spleen) #gets the normalized count matrix
 
+write.table(as.matrix(matrix_cometsc), file= "exprs.txt", row.names=TRUE, col.names=TRUE, sep = "\t", quote = FALSE)
 
-data.mat.surf <- data.frame(exp = cbmc@assays$RNA@data["CD19",],
-                            id = as.character(cbmc@active.ident))
-
-
-VlnPlot(cbmc, "ECH1")
-df.matrix <- get_gene_PRAUC_matrix(cbmc, "CD34", "12", step = 0.1)
-
-plot(df.matrix$x.rec, df.matrix$x.pre)
-
-geneset <- intersect(rownames(cbmc[["RNA"]]), markers.allset)
-
-identify_single_marker.1 <- function(scrna, id, geneset = NULL, step = 0.01){
-  if (!is.null(geneset)) {
-    if (length(intersect(rownames(scrna[["RNA"]]), geneset)) == 0) {
-      print("Genes not find.")
-    }else{
-      markers.de <- FindMarkers(scrna, ident.1 = id, features = intersect(rownames(scrna[["RNA"]]), geneset), test.use = "t")
-    }
-  }else{
-    markers.de <- FindMarkers(scrna, ident.1 = id, test.use = "t")
-  }
-  markers.de <- markers.de[markers.de$p_val_adj < 0.05, ]
-  markers.pos <- markers.de[markers.de$avg_log2FC > 0, ]
-  markers.neg <- markers.de[markers.de$avg_log2FC < 0, ]
-  df <- data.frame()
-  for (gene in rownames(markers.pos)) {
-    df.s <- get_split_pos.1(scrna, gene, id, step = step)
-    df <- rbind(df, df.s)
-  }
-  for (gene in rownames(markers.neg)) {
-    df.s <- get_split_neg.1(scrna, gene, id, step = step)
-    df <- rbind(df, df.s)
-  }
-  df <- df[order(df$x.margin.adj, decreasing = T), ]
-  return(df)
-}
-
-df.6 <- identify_single_marker.1(cbmc, "6", step = 0.1, geneset = markers.allset)
-markers.wilcox[[6]]
-df.6
-
-df.5 <- identify_single_marker.1(cbmc, "5", step = 0.1, geneset = markers.allset)
-
-df.single <- list()
-for (x.cluster in 1:8) {
-  df.s <- identify_single_marker.1(cbmc, x.cluster, step = 0.1, geneset = markers.allset)
-  df.single[[x.cluster]] <- df.s
-}
-
-for (x.cluster in seq(1,8)) {
-  markers <- FindMarkers(cbmc, ident.1 = x.cluster, features = intersect(rownames(cbmc[["RNA"]]), markers.allset))
-  markers <- markers[order(markers$avg_log2FC, decreasing = T),]
-  markers.wilcox[[x.cluster]] <- markers
-  # markers.i <- identify_single_marker(cbmc, x.cluster, markers.allset)
-  # markers.prauc[[x.cluster]] <- markers.i
-}
-
-for (x.cluster in seq(1,8)) {
-  markers <- markers.wilcox[[x.cluster]]
-  markers <- markers[order(markers$p_val_adj, decreasing = F),]
-  markers.wilcox[[x.cluster]] <- markers
-  # markers.i <- identify_single_marker(cbmc, x.cluster, markers.allset)
-  # markers.prauc[[x.cluster]] <- markers.i
-}
-
-Convert("/home/ronghui/project/scMarkerDetect/MCA_BatchRemoved_Merge_dge.h5ad", dest = "h5seurat", overwrite = TRUE)
-sce <- readH5AD("/home/ronghui/project/scMarkerDetect/MCA_BatchRemoved_Merge_dge.h5ad")
-
-file <- system.file("MCA_BatchRemoved_Merge_dge.h5ad", package = "zellkonverter")
-kidney <- ReadH5AD("/home/ronghui/project/scMarkerDetect/MCA_BatchRemoved_Merge_dge.h5ad", assay = "RNA", layers = "data" ,verbose =TRUE)
-readH5AD(file, reader = "R")
-markers.de.6[order(markers.de.6$avg_log2FC, decreasing = T), ]
-
-VlnPlot(cbmc, rownames(df.single[[6]])[1])
 ```
 
 ```{r}
