@@ -11,10 +11,12 @@ devtools::install_github("https://github.com/CostaLab/scMarkerDetect", build_vig
 require(scMarkerDetect)
 ```
 
+Identify single markers for specific cell groups
+
 ```{r}
-install.packages("devtools")
-devtools::install_github("https://github.com/CostaLab/scMarkerDetect", build_vignettes = TRUE)
-require(scMarkerDetect)
+data(pbmc_small)
+Idents(pbmc_small) <- "groups"
+markers.results <- detect_marker(pbmc_small, "g2", do.fast = F)
 ```
 
 
