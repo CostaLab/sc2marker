@@ -99,6 +99,14 @@ intersect(rownames(cbmc[["ADT"]]), rownames(cbmc[["RNA"]]))
 
 # place plots side-by-side
 p1 | p2
+
+pdf("Citeseq.cd19.pdf", width = 14, height = 10)
+DefaultAssay(citeseq) <- "ADT"
+p1 <- FeaturePlot(citeseq, "CD19", cols = c("lightgrey", "darkgreen"), reduction = "wnn.umap") + ggtitle("CD19 protein")
+DefaultAssay(citeseq) <- "SCT"
+p2 <- FeaturePlot(citeseq, "CD19", reduction = "wnn.umap") + ggtitle("CD19 RNA")
+print(p1 | p2)
+dev.off()
 ```
 
 # Get single markers from Seurat and PRAUC
