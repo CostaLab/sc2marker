@@ -1141,7 +1141,7 @@ get_split_pos_pos <- function(scrna, gene1, gene2, id, step = 0.01) {
 }
 
 
-get_split_pos.2 <- function(scrna, gene, id, step = 0.01, do.magic = F) {
+get_gene_score_pos <- function(scrna, gene, id, step = 0.01, do.magic = F) {
   if (do.magic) {
     data.mat.surf <- data.frame(exp = normalize(scrna@assays$MAGIC_RNA@data[gene,]),
                                 id = as.character(scrna@active.ident))
@@ -1161,7 +1161,7 @@ get_split_pos.2 <- function(scrna, gene, id, step = 0.01, do.magic = F) {
   x.min <- 1
   x.num <- 1/step
 
-  x.factor <- (mean(data.id$exp) + 0.001)/(mean(data.other$exp) + 0.001)
+  x.factor <- (mean(data.id$exp) + 0.01)/(mean(data.other$exp) + 0.01)
   # x.size.factor <- 10*(length(data.id$exp)/length(data.other$exp))
 
   for (x.val in seq(0, 1, step)) {
@@ -1211,7 +1211,7 @@ get_split_pos.2 <- function(scrna, gene, id, step = 0.01, do.magic = F) {
   return(x.split)
 }
 
-get_split_neg.2 <- function(scrna, gene, id, step = 0.01, do.magic = F) {
+get_gene_score_neg <- function(scrna, gene, id, step = 0.01, do.magic = F) {
   if (do.magic) {
     data.mat.surf <- data.frame(exp = normalize(scrna@assays$MAGIC_RNA@data[gene,]),
                                 id = as.character(scrna@active.ident))
@@ -1231,7 +1231,7 @@ get_split_neg.2 <- function(scrna, gene, id, step = 0.01, do.magic = F) {
   x.min <- 1
   x.num <- 1/step
 
-  x.factor <- (mean(data.id$exp) + 0.001)/(mean(data.other$exp) + 0.001)
+  x.factor <- (mean(data.id$exp) + 0.01)/(mean(data.other$exp) + 0.01)
 
   for (x.val in seq(0, 1, step)) {
     data.i.a <- data.id[data.id$exp < x.val, ]
@@ -1277,7 +1277,7 @@ marker_stepbystep.2 <- function(scrna, cellgroup, depth = 2, geneset = NULL, ste
   suppressWarnings(
     for (variable in seq(depth)) {
       df.fc <- FoldChange(scrna, ident.1 = cellgroup, features = geneset)
-      # markers <- get_split_pos.2(scrna, ident.1 = cellgroup, features = geneset)
+      # markers <- get_gene_score_pos(scrna, ident.1 = cellgroup, features = geneset)
       # markers <- subset(markers, p_val < 0.05)
 
       markers.pos <- subset(df.fc, avg_log2FC > 0)
@@ -1286,12 +1286,12 @@ marker_stepbystep.2 <- function(scrna, cellgroup, depth = 2, geneset = NULL, ste
       gene.prauc <- data.frame()
 
       for (genes in rownames(markers.pos)) {
-        de <- data.frame(get_split_pos.2(scrna, genes, cellgroup, step, do.magic = do.magic))
+        de <- data.frame(get_gene_score_pos(scrna, genes, cellgroup, step, do.magic = do.magic))
         names(de)<-c("gene", "split.value","x.margin", "x.margin.adj", "tp", "fp", "direction")
         gene.prauc <- rbind(gene.prauc, de)
       }
       for (genes in rownames(markers.neg)) {
-        de <- data.frame(get_split_neg.2(scrna, genes, cellgroup, step, do.magic = do.magic))
+        de <- data.frame(get_gene_score_neg(scrna, genes, cellgroup, step, do.magic = do.magic))
         names(de)<-c("gene", "split.value","x.margin", "x.margin.adj", "tp", "fp", "direction")
         gene.prauc <- rbind(gene.prauc, de)
       }
@@ -1316,6 +1316,7 @@ marker_stepbystep.2 <- function(scrna, cellgroup, depth = 2, geneset = NULL, ste
   return(df.split)
 }
 
+
 GetCellNames <- function(scrna, gene, value, direction, do.magic = F){
   if (do.magic) {
     df <- data.frame(exp = scrna@assays$MAGIC_RNA@data[gene,])
@@ -1332,10 +1333,10 @@ GetCellNames <- function(scrna, gene, value, direction, do.magic = F){
 
 get_split_pos <- function(scrna, gene, id, step = 0.01, do.magic = F) {
   if (do.magic) {
-    data.mat.surf <- data.frame(exp = normalize(scrna@assays$MAGIC_RNA@data[gene,]),
+    data.mat.surf <- data.frame(exp = scrna@assays$MAGIC_RNA@data[gene,],
                                 id = as.character(scrna@active.ident))
   }else{
-    data.mat.surf <- data.frame(exp = normalize(scrna@assays$RNA@data[gene,]),
+    data.mat.surf <- data.frame(exp = scrna@assays$RNA@data[gene,],
                                 id = as.character(scrna@active.ident))
   }
   gene.prauc <- data.frame(x.val <- c(),
@@ -1374,10 +1375,10 @@ get_split_pos <- function(scrna, gene, id, step = 0.01, do.magic = F) {
 
 get_split_neg <- function(scrna, gene, id, step = 0.01, do.magic = F) {
   if (do.magic) {
-    data.mat.surf <- data.frame(exp = normalize(scrna@assays$MAGIC_RNA@data[gene,]),
+    data.mat.surf <- data.frame(exp = scrna@assays$MAGIC_RNA@data[gene,],
                                 id = as.character(scrna@active.ident))
   }else{
-    data.mat.surf <- data.frame(exp = normalize(scrna@assays$RNA@data[gene,]),
+    data.mat.surf <- data.frame(exp = scrna@assays$RNA@data[gene,],
                                 id = as.character(scrna@active.ident))
   }
   gene.prauc <- data.frame(x.val <- c(),
@@ -1390,6 +1391,7 @@ get_split_neg <- function(scrna, gene, id, step = 0.01, do.magic = F) {
   x.min <- 0
   x.num <- 1/step
 
+  x.factor <- as.numeric(length(data.mat.surf$id)/length(data.id$id))
   x.factor <- ifelse(x.factor > 5, x.factor, 5)
 
   for (x.val in seq(x.min, x.max, (x.max - x.min)/x.num)) {
