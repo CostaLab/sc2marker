@@ -1161,7 +1161,7 @@ get_gene_score_pos <- function(scrna, gene, id, step = 0.01, do.magic = F) {
   x.min <- 1
   x.num <- 1/step
 
-  x.factor <- (mean(data.id$exp) + 0.01)/(mean(data.other$exp) + 0.01)
+  x.factor <- (mean(data.id$exp) + 0.001)/(mean(data.other$exp) + 0.001)
   # x.size.factor <- 10*(length(data.id$exp)/length(data.other$exp))
 
   for (x.val in seq(0, 1, step)) {
@@ -1231,7 +1231,7 @@ get_gene_score_neg <- function(scrna, gene, id, step = 0.01, do.magic = F) {
   x.min <- 1
   x.num <- 1/step
 
-  x.factor <- (mean(data.id$exp) + 0.01)/(mean(data.other$exp) + 0.01)
+  x.factor <- (mean(data.id$exp) + 0.001)/(mean(data.other$exp) + 0.001)
 
   for (x.val in seq(0, 1, step)) {
     data.i.a <- data.id[data.id$exp < x.val, ]
@@ -1565,4 +1565,45 @@ grid_pie_plot <- function(scrna, df.split, cellgroup, ncol = 2){
     n <- n + 1
   }
   plot(plot_grid(plotlist=plots[1:length(plots)], ncol = ncol))
+}
+
+
+detect_marker <- function(scrna, id, step = 0.1, do.magic = F, category = NULL,
+                          geneset = NULL, assay = "RNA", do.fast = F, min.pct = 0.1, use.all = F){
+  if (is.null(geneset)) {
+    geneset <- rownames(scrna[[assay]])
+  }else{
+    geneset <- intersect(rownames(scrna[[assay]]), geneset)
+  }
+  if (use.all) {
+    geneset <- intersect(rownames(scrna[[assay]]), geneset)
+    de <- FoldChange(scrna, ident.1 = id, features = geneset)
+  }
+  if (!use.all) {
+    if (do.fast) {
+      de <- FindMarkers(scrna, ident.1 = id, features = geneset)
+      de <- subset(de, p_val_adj < 0.05)
+    }else{
+      de <- FoldChange(scrna, ident.1 = id, features = geneset)
+      de <- de[de$pct.1 > min.pct, ]
+    }
+  }
+
+  markers.pos <- subset(de, avg_log2FC > 0)
+  markers.neg <- subset(de, avg_log2FC < 0)
+
+  gene.rank.list <- data.frame()
+
+  for (genes in rownames(markers.pos)) {
+    de <- data.frame(get_gene_score_pos(scrna, genes, id, step, do.magic = do.magic))
+    names(de)<-c("gene", "split.value","x.margin", "x.margin.adj", "tp", "fp", "direction")
+    gene.rank.list <- rbind(gene.rank.list, de)
+  }
+  for (genes in rownames(markers.neg)) {
+    de <- data.frame(get_gene_score_neg(scrna, genes, id, step, do.magic = do.magic))
+    names(de)<-c("gene", "split.value","x.margin", "x.margin.adj", "tp", "fp", "direction")
+    gene.rank.list <- rbind(gene.rank.list, de)
+  }
+  gene.rank.list <- gene.rank.list[order(gene.rank.list$x.margin.adj, decreasing = T),]
+  return(gene.rank.list)
 }
