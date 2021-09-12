@@ -25,6 +25,7 @@ suppressMessages(library(MLmetrics))
 # source("/home/ronghui/project/scMarkerDetect/R/Cell_markers.ident.R")
 # source("/home/ronghui/project/scMarkerDetect/enhance-R-master/enhance.R")
 # library(scMarkerDetect)
+load("de.results.RData")
 ```
 
 
@@ -68,7 +69,8 @@ markers.allset <- unique(markers.allset)
 # cbmc <- RunUMAP(cbmc, dims = 1:30)
 
 # load("/home/ronghui/project/dbmaker/seurat.cbmc.rds")
-citeseq <- LoadH5Seurat("/home/ronghui/Downloads/multi.h5seurat")
+# citeseq <- LoadH5Seurat("multi.h5seurat")
+citeseq <- LoadH5Seurat("/home/ronghui/project/scMarkerDetect/multi.h5seurat")
 DimPlot(cbmc, label = TRUE)
 citeseq@reductions$apca <- NULL
 citeseq@assays$SCT@data
@@ -110,12 +112,407 @@ table(as.numeric(citeseq@active.ident), citeseq@active.ident)
 makers.b["CD21",]
 
 
-Idents(scrna) <- "celltype.l1"
-DefaultAssay(scrna) <- "SCT"
-makers.mono <- FindMarkers(scrna, ident.1 = "Mono", test.use = "t")
+Idents(citeseq) <- "celltype.l1"
+DefaultAssay(citeseq) <- "SCT"
+markers.b.t <- FindMarkers(citeseq, ident.1 = "B", test.use = "t")
 makers.mono <- makers.mono[order(makers.mono$avg_log2FC, decreasing = T),]
-makers.mono["CD14", ]
+df.mono["CD14", ]
+
+match("NCR1", rownames(df.nk))
+match("NCR1", rownames(markers.nk.lr))
+match("NCR1", rownames(markers.nk.wilcox))
+match("NCR1", rownames(markers.nk.mast))
+match("CLEC12A", rownames(markers.dc.mast))
+
+match("LY6D", rownames(df.b))
+df.dc
+df.nk
+
+match("CD8A", rownames(markers.cd8t.mast))
+adt.de.all[adt.de.all$cluster == "B", ]
+
+
+pdf("citeseq.b.heatmap.pdf", width = 10, height = 8)
+DoHeatmap(object = citeseq.small, features = b.adt.genes, slot = "data") + scale_fill_gradientn(colors = c("white", "red"))
+dev.off()
+
+mylevels <- c("B", "DC", "CD8 T", "CD4 T", "Mono", "NK", "other T", "other")
+citeseq.down@active.ident <- factor(x = citeseq.down@active.ident, levels = mylevels)
+
+c("CD21", "CD72")
+
+match("CD8", rownames(df.))
+
+DefaultAssay(citeseq) <- "ADT"
+FeaturePlot(citeseq, "CD8A", cols = c("lightgrey", "darkgreen"), reduction = "wnn.umap")
+
 ```
+
+```{r}
+pdf("citeseq.umap.pdf")
+DimPlot(citeseq, group.by = "celltype.l1", reduction = "wnn.umap") + ggtitle()
+dev.off()
+```
+
+```{r}
+load("citeseq.b.xx.rds")
+load("citeseq.de.b.RData")
+de.b.xx
+
+adt.de.all[adt.de.all$cluster == "CD4 T", ]
+adt.de.all[adt.de.all$cluster == "CD8 T", ]
+adt.de.all[adt.de.all$cluster == "Mono", ]
+
+dc.adt <- adt.de.all[adt.de.all$cluster == "DC", ]
+
+dc.adt[order(dc.adt$avg_log2FC, decreasing = T), ]
+```
+
+
+
+```{r}
+df.fc.re <- de.b.t
+df.fc.re$avg_log2FC <- abs(df.fc.re$avg_log2FC)
+df.fc.re <- df.fc.re[order(df.fc.re$avg_log2FC, decreasing = T), ]
+
+t.cells.genes <- c("CR2", "CD72", "CD22", "IGHD", "CD19", "TNFRSF13C", "Ms4a1", "NT5E", "IGHM", "ICOSLG")
+
+t.cells.genes <- toupper(t.cells.genes)
+
+df <- data.frame()
+for (gene in t.cells.genes) {
+  df.s <- data.frame(t.test <- c(match(gene, rownames(de.b.t))),
+                   wilcox.test <- c(match(gene, rownames(de.b.wilcox))),
+                   mast <- c(match(gene, rownames(de.b.mast))),
+                   LR <- c(match(gene, rownames(de.b.lr))),
+                   roc <- c(match(gene, rownames(de.b.roc))),
+                   FC <- c(match(gene, rownames(df.fc.re))),
+                   sc2panel <- c(match(gene, de.b.xx$gene))
+                   )
+  colnames(df.s) <- c("T-test", "Wilcox", "MAST", "LR","ROC", "FC", "sc2panel")
+  rownames(df.s) <- paste(gene)
+  df <- rbind(df, df.s)
+}
+
+de.b.xx[order(de.b.xx$x.margin, decreasing = T),]
+df
+
+df.melt <- melt(df)
+
+# df.melt[is.na(df.melt)] <- 198
+
+
+# pdf("mca.spleen.boxplot.pdf", width = 14, height = 10)
+# ggplot(df.melt, aes(x=variable, y = value, fill = variable))+
+#   geom_boxplot()+
+#   coord_trans(y = squash_axis(100, 300, 30)) + xlab("Test") + ylab("Marker ranking") + ggtitle("MCA Spleen tissue")
+# dev.off()
+
+# pdf("CIteseq.Bcell.markers.ranking.boxplot.pdf", width = 7, height = 5)
+ggplot(df.melt, aes(x=variable, y = value, fill = variable))+
+  geom_boxplot()+
+  xlab("Test") + ylab("Marker ranking") + ggtitle("Citeseq Human B cell")
+# dev.off()
+
+```
+
+# Final ranking
+
+```{r}
+load("citeseq.de.b..RData")
+df.fc.re <- fc.b
+df.fc.re$avg_log2FC <- abs(df.fc.re$avg_log2FC)
+df.fc.re <- df.fc.re[order(df.fc.re$avg_log2FC, decreasing = T), ]
+
+t.cells.genes <- c("CR2", "CD72", "CD22", "IGHD", "CD19", "TNFRSF13C", "Ms4a1", "NT5E", "IGHM", "ICOSLG")
+
+t.cells.genes <- toupper(t.cells.genes)
+
+df <- data.frame()
+for (gene in t.cells.genes) {
+  df.s <- data.frame(t.test <- c(match(gene, rownames(de.b.t))),
+                   wilcox.test <- c(match(gene, rownames(de.b.wilcox))),
+                   mast <- c(match(gene, rownames(de.b.mast))),
+                   LR <- c(match(gene, rownames(de.b.lr))),
+                   roc <- c(match(gene, rownames(de.b.roc))),
+                   FC <- c(match(gene, rownames(df.fc.re))),
+                   Hypergate  <- c(match(gene, df.b.f1$gene)),
+                   sc2panel <- c(match(gene, df.b.f5$gene)),
+                   sc2panel2 <- c(match(gene, df.b.sc2$gene))
+                   )
+  colnames(df.s) <- c("T-test", "Wilcox", "MAST", "LR","ROC", "FC", "Hypergate", "sc2panel", "sc2panel2")
+  rownames(df.s) <- paste(gene)
+  df <- rbind(df, df.s)
+}
+
+load("citeseq.de.dc.RData")
+df.fc.re <- fc.b
+df.fc.re$avg_log2FC <- abs(df.fc.re$avg_log2FC)
+df.fc.re <- df.fc.re[order(df.fc.re$avg_log2FC, decreasing = T), ]
+
+t.cells.genes <- c("IL3RA", "NRP1")
+
+t.cells.genes <- toupper(t.cells.genes)
+
+# df <- data.frame()
+for (gene in t.cells.genes) {
+  df.s <- data.frame(t.test <- c(match(gene, rownames(de.dc.t))),
+                   wilcox.test <- c(match(gene, rownames(de.dc.wilcox))),
+                   mast <- c(match(gene, rownames(de.dc.mast))),
+                   LR <- c(match(gene, rownames(de.dc.lr))),
+                   roc <- c(match(gene, rownames(de.dc.roc))),
+                   FC <- c(match(gene, rownames(df.fc.re))),
+                   Hypergate  <- c(match(gene, df.dc.f1$gene)),
+                   sc2panel <- c(match(gene, df.dc.f5$gene)),
+                   sc2panel2 <- c(match(gene, df.dc.sc2$gene))
+                   )
+  colnames(df.s) <- c("T-test", "Wilcox", "MAST", "LR","ROC", "FC", "Hypergate", "sc2panel", "sc2panel2")
+  rownames(df.s) <- paste(gene)
+  df <- rbind(df, df.s)
+}
+
+load("citeseq.de.mono.RData")
+df.fc.re <- fc.b
+df.fc.re$avg_log2FC <- abs(df.fc.re$avg_log2FC)
+df.fc.re <- df.fc.re[order(df.fc.re$avg_log2FC, decreasing = T), ]
+
+t.cells.genes <- c("CD86", "FCGR1A", "ITGAM", "PVR", "CD14")
+
+t.cells.genes <- toupper(t.cells.genes)
+
+# df <- data.frame()
+for (gene in t.cells.genes) {
+  df.s <- data.frame(t.test <- c(match(gene, rownames(de.mono.t))),
+                   wilcox.test <- c(match(gene, rownames(de.mono.wilcox))),
+                   mast <- c(match(gene, rownames(de.mono.mast))),
+                   LR <- c(match(gene, rownames(de.mono.lr))),
+                   roc <- c(match(gene, rownames(de.mono.roc))),
+                   FC <- c(match(gene, rownames(df.fc.re))),
+                   Hypergate  <- c(match(gene, df.mono.f1$gene)),
+                   sc2panel <- c(match(gene, df.mono.f5$gene)),
+                   sc2panel2 <- c(match(gene, df.mono.sc2$gene))
+                   )
+  colnames(df.s) <- c("T-test", "Wilcox", "MAST", "LR","ROC", "FC", "Hypergate", "sc2panel", "sc2panel2")
+  rownames(df.s) <- paste(gene)
+  df <- rbind(df, df.s)
+}
+
+load("citeseq.de.cd8t.RData")
+df.fc.re <- fc.b
+df.fc.re$avg_log2FC <- abs(df.fc.re$avg_log2FC)
+df.fc.re <- df.fc.re[order(df.fc.re$avg_log2FC, decreasing = T), ]
+
+t.cells.genes <- c("CD8B", "CD8A")
+
+t.cells.genes <- toupper(t.cells.genes)
+
+# df <- data.frame()
+for (gene in t.cells.genes) {
+  df.s <- data.frame(t.test <- c(match(gene, rownames(de.cd8t.t))),
+                   wilcox.test <- c(match(gene, rownames(de.cd8t.wilcox))),
+                   mast <- c(match(gene, rownames(de.cd8t.mast))),
+                   LR <- c(match(gene, rownames(de.cd8t.lr))),
+                   roc <- c(match(gene, rownames(de.cd8t.roc))),
+                   FC <- c(match(gene, rownames(df.fc.re))),
+                   Hypergate  <- c(match(gene, df.cd8t.f1$gene)),
+                   sc2panel <- c(match(gene, df.cd8t.f5$gene)),
+                   sc2panel2 <- c(match(gene, df.cd8t.sc2$gene))
+                   )
+  colnames(df.s) <- c("T-test", "Wilcox", "MAST", "LR","ROC", "FC", "Hypergate", "sc2panel", "sc2panel2")
+  rownames(df.s) <- paste(gene)
+  df <- rbind(df, df.s)
+}
+
+
+load("citeseq.de.cd4t.RData")
+df.fc.re <- fc.b
+df.fc.re$avg_log2FC <- abs(df.fc.re$avg_log2FC)
+df.fc.re <- df.fc.re[order(df.fc.re$avg_log2FC, decreasing = T), ]
+
+t.cells.genes <- c("CD4")
+
+t.cells.genes <- toupper(t.cells.genes)
+
+# df <- data.frame()
+for (gene in t.cells.genes) {
+  df.s <- data.frame(t.test <- c(match(gene, rownames(de.cd4t.t))),
+                   wilcox.test <- c(match(gene, rownames(de.cd4t.wilcox))),
+                   mast <- c(match(gene, rownames(de.cd4t.mast))),
+                   LR <- c(match(gene, rownames(de.cd4t.lr))),
+                   roc <- c(match(gene, rownames(de.cd4t.roc))),
+                   FC <- c(match(gene, rownames(df.fc.re))),
+                   Hypergate  <- c(match(gene, df.cd4t.f1$gene)),
+                   sc2panel <- c(match(gene, df.cd4t.f5$gene)),
+                   sc2panel2 <- c(match(gene, df.cd4t.sc2$gene))
+                   )
+  colnames(df.s) <- c("T-test", "Wilcox", "MAST", "LR","ROC", "FC", "Hypergate", "sc2panel", "sc2panel2")
+  rownames(df.s) <- paste(gene)
+  df <- rbind(df, df.s)
+}
+# de.b.xx[order(de.b.xx$x.margin, decreasing = T),]
+# df
+
+df.melt <- melt(df)
+
+# ggplot(df.melt, aes(x=variable, y = value, fill = variable))+
+#   geom_boxplot()+
+#   xlab("Test") + ylab("Marker ranking") + ggtitle("Citeseq Human B cell")
+
+library(scales)
+
+squash_axis <- function(from, to, factor) { 
+    # Args:
+    #   from: left end of the axis
+    #   to: right end of the axis
+    #   factor: the compression factor of the range [from, to]
+
+  trans <- function(x) {    
+      # get indices for the relevant regions
+      isq <- x > from & x < to
+      ito <- x >= to
+
+      # apply transformation
+      x[isq] <- from + (x[isq] - from)/factor
+      x[ito] <- from + (to - from)/factor + (x[ito] - to)
+
+      return(x)
+  }
+
+  inv <- function(x) {
+      # get indices for the relevant regions
+      isq <- x > from & x < from + (to - from)/factor
+      ito <- x >= from + (to - from)/factor
+
+      # apply transformation
+      x[isq] <- from + (x[isq] - from) * factor
+      x[ito] <- to + (x[ito] - (from + (to - from)/factor))
+
+      return(x)
+  }
+
+# return the transformation
+  return(trans_new("squash_axis", trans, inv))
+}
+
+
+pdf("plots/citeseq.ranking.boxplot.pdf", width = 7, height = 5)
+ggplot(df.melt, aes(x=variable, y = value, fill = variable))+
+  geom_boxplot()+
+  coord_trans(y = squash_axis(2000, 9000, 30)) + xlab("Test") + ylab("Marker ranking") + ggtitle("Markers Ranking in HCA")+
+  theme_bw() + scale_color_lancet()
+dev.off()
+
+df
+
+ggplot(df.melt, aes(x=variable, y = value, fill = variable))+
+  geom_boxplot()+
+  coord_trans(y = squash_axis(2000, 9000, 30)) + xlab("Test") + ylab("Marker ranking") + ggtitle("Markers Ranking in HCA")+
+  theme_bw() + scale_color_lancet()
+```
+
+
+```{r}
+
+
+genes.c <- vector("list")
+genes.c[["B"]] <- data.frame(adt.n = c("CR2", "CD72", "CD22", "IGHD", "CD19", "TNFRSF13C", "Ms4a1", "NT5E", "IGHM", "ICOSLG"),
+                             sct.n = c("CD21", "CD72", "CD22","IgD", "CD19", "CD268", "CD20", "CD73", "IgM", "CD275-2"))
+celltype <- c("B", "Mono", "DC", "CD4 T", "CD8 T")
+for (cell.x in celltype) {
+  gene.df <- genes.c[[cell.x]]
+  for (variable in vector) {
+    
+  }
+  
+}
+
+genes.c[["B"]] <- data.frame(adt.n = c("CD123", "CD304", "CD271"),
+                             sct.n = c("IL3RA", "NRP1", "NGFR"))
+
+Idents(citeseq) <- "celltype.l1"
+adt.n <- "CD4-2"
+sct.n <- "CD4"
+cell.id <- "CD4 T"
+
+DefaultAssay(citeseq) <- "SCT"
+sct.c <-FetchData(citeseq, vars = c(sct.n))
+DefaultAssay(citeseq) <- "ADT"
+adt.c <-FetchData(citeseq, vars = c(adt.n, "ident"))
+
+df.c <- cbind(sct.c, adt.c)
+
+colnames(df.c) <- c(paste(sct.n, "RNA", sep = " "), paste(adt.n, " Protein"), "Ident")
+df.c$Ident <- ifelse(df.c$Ident == cell.id, cell.id, "Other")
+
+# df.c[,1] <- normalize(df.c[,1])
+# df.c[,2] <- normalize(df.c[,2])
+
+df.s <- melt(df.c)
+ggplot(df.s, aes(x=value, y=variable, color=Ident, point_color=Ident, fill=Ident)) +
+  
+  geom_density_ridges(
+    jittered_points=FALSE, scale = .95, rel_min_height = .01
+  ) + 
+  scale_y_discrete(expand = c(.01, 0)) +
+  # scale_x_continuous(expand = c(0, 0), name = "Expression") +
+  scale_fill_manual(values = c("#CB181D80", "#2171B580")) +
+  scale_color_manual(values = c("#CB181D80", "#2171B580"), guide = "none") +
+  scale_discrete_manual("point_color", values = c("#CB181D80", "#2171B580"), guide = "none") +
+  guides(fill = guide_legend(
+    override.aes = list(
+      fill = c("#CB181D80", "#2171B580"),
+      color = NA, point_color = NA))
+  ) +
+  theme_ridges(center = TRUE) +
+  xlim(0.3, 2.5) + ylab("") + ggtitle(paste(sct.n)) + 
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5)
+  )#+ xlim(0, 1)
+
+p1 <- ggplot(mpg, aes(displ, hwy)) +
+  geom_point()
+p1
+p1 +
+  scale_x_continuous("Engine displacement (L)") +
+  scale_y_continuous("Highway MPG")
+p1 + labs(x = NULL, y = NULL)
+p1 + scale_x_continuous(limits = c(2, 6))
+p1 + xlim(2, 6)
+```
+
+
+
+```{r}
+paletteLength <- 6
+myColor <- colorRampPalette(c("red", "white"))(paletteLength)
+
+quantile_breaks <- function(xs, n = 10) {
+  breaks <- quantile(xs, probs = seq(0, 1, length.out = n))
+  breaks[!duplicated(breaks)]
+}
+
+mat_breaks <- quantile_breaks(df$sc2panel, n = 11)
+
+mat_breaks <- seq(1, 500, length.out = 10)
+
+# pdf("CIteseq.Bcell.markers.ranking.heatmap.pdf", width = 7, height = 5)
+pheatmap(df, 
+         color=myColor,
+         cluster_row = FALSE, 
+         breaks = mat_breaks,
+         cluster_col = FALSE,  na_col = "#000000", angle_col = "45")
+# dev.off()
+
+pdf("CIteseq.Bcell.markers.ranking.heatmap.log_of_ranking.pdf", width = 7, height = 5)
+pheatmap(log2(df), 
+         color=myColor, cluster_row = FALSE, 
+         # breaks = mat_breaks,
+         cluster_col = FALSE,  na_col = "#000000", angle_col = "45")
+dev.off()
+
+```
+
 
 ```{r}
 DefaultAssay(scrna) <- "ADT"
@@ -132,76 +529,10 @@ for (gene in rownames(makers.mono)[1:30]) {
   df.mono <- rbind(df.mono, df.s)
 }
 df.mono[order(df.mono$x.margin.adj, decreasing = T), ]
-df.mono["CD14", ]
+
 
 DefaultAssay(scrna) <- "SCT"
 VlnPlot(scrna, "CD14")
-
-hist(scrna@assays$SCT@data["CD14", ])
-
-get_gene_PRAUC_pos <- function(scrna, gene, id, step = 0.01) {
-  data.mat.surf <- data.frame(exp = scrna@assays$SCT@data[gene,],
-                              id = as.character(scrna@active.ident))
-  gene.prauc <- data.frame(x.pre <- c(),
-                           x.rec <- c())
-  data.id <- data.mat.surf[data.mat.surf$id == id,]
-  data.other <- data.mat.surf[data.mat.surf$id != id,]
-
-  # x.max <- max(data.id$exp)
-  # x.min <- min(data.id$exp)
-
-  # for (x.val in seq(x.min, x.max, (x.max - x.min)/100)) {
-  for (x.val in quantile(data.mat.surf$exp, seq(0, 1, step))) {
-
-    tp <- sum(data.id$exp >= x.val)
-    fp <- sum(data.other$exp >= x.val)
-    # tn <- sum(data.other$exp < x.val)
-    fn <- sum(data.id$exp < x.val)
-
-    x.pre <- tp/(tp + fp)
-    x.rec <- tp/(tp + fn)
-    de <- data.frame(x.pre, x.rec)
-    gene.prauc <- rbind(gene.prauc, de)
-  }
-
-  gene.prauc <- gene.prauc[complete.cases(gene.prauc), ]
-  gene.prauc <- gene.prauc[order(gene.prauc$x.rec), ]
-
-  PRAUC <- Area_Under_Curve(gene.prauc$x.rec,  gene.prauc$x.pre,
-                            method = "trapezoid", na.rm = TRUE)
-  return(PRAUC)
-}
-
-get_gene_PRAUC_pos_matrix <- function(scrna, gene, id, step = 0.01) {
-  data.mat.surf <- data.frame(exp = scrna@assays$SCT@data[gene,],
-                              id = as.character(scrna@active.ident))
-  gene.prauc <- data.frame(x.pre <- c(),
-                           x.rec <- c())
-  data.id <- data.mat.surf[data.mat.surf$id == id,]
-  data.other <- data.mat.surf[data.mat.surf$id != id,]
-
-  # x.max <- max(data.id$exp)
-  # x.min <- min(data.id$exp)
-
-  # for (x.val in seq(x.min, x.max, (x.max - x.min)/100)) {
-  for (x.val in quantile(data.mat.surf$exp, seq(0, 1, step))) {
-
-    tp <- sum(data.id$exp >= x.val)
-    fp <- sum(data.other$exp >= x.val)
-    # tn <- sum(data.other$exp < x.val)
-    fn <- sum(data.id$exp < x.val)
-
-    x.pre <- tp/(tp + fp)
-    x.rec <- tp/(tp + fn)
-    de <- data.frame(x.pre, x.rec)
-    gene.prauc <- rbind(gene.prauc, de)
-  }
-
-  gene.prauc <- gene.prauc[complete.cases(gene.prauc), ]
-  gene.prauc <- gene.prauc[order(gene.prauc$x.rec), ]
-  return(gene.prauc)
-}
-
 
 
 get_gene_PRAUC_pos_matrix(scrna, "CD72", "B")
@@ -221,6 +552,113 @@ plot(df.m$x.rec, df.m$x.pre)
 
 markers.b.roc <- FindMarkers(scrna, ident.1 = "B", test.use = "roc")
 
+
+for (gene in rownames(markers.b.t)) {
+  df.s <- get_split_pos.2(citeseq, gene, "B")
+  df.mono <- rbind(df.mono, df.s)
+}                                       
+df.mono[order(df.mono$x.margin.adj, decreasing = T), ]
+
+
+df.b <- data.frame()
+for (gene in rownames(markers.b.t)) {
+  df.s <- get_split_pos.2(citeseq, gene, "B")
+  df.b <- rbind(df.b, df.s)
+}
+df.b <- df.b[order(df.b$x.margin.adj, decreasing = T), ]
+
+df.nk <- data.frame()
+for (gene in rownames(markers.nk.t)) {
+  df.s <- get_split_pos.2(citeseq, gene, "NK")
+  df.nk <- rbind(df.nk, df.s)
+}
+df.nk <- df.nk[order(df.nk$x.margin.adj, decreasing = T), ]
+
+df.mono <- data.frame()
+for (gene in rownames(markers.mono.t)) {
+  df.s <- get_split_pos.2(citeseq, gene, "Mono")
+  df.mono <- rbind(df.mono, df.s)
+}
+df.mono <- df.mono[order(df.mono$x.margin.adj, decreasing = T), ]
+
+
+df.cd4t <- data.frame()
+for (gene in rownames(markers.cd4t.t)) {
+  df.s <- get_split_pos.2(citeseq, gene, "CD4 T")
+  df.cd4t <- rbind(df.cd4t, df.s)
+}
+df.cd4t <- df.cd4t[order(df.cd4t$x.margin.adj, decreasing = T), ]
+
+
+```
+
+
+```{r}
+start_time <- Sys.time()
+all.markers.t <- FindAllMarkers(citeseq, test.use = "t")
+end_time <- Sys.time()
+end_time - start_time
+
+round(normalize(mca.spleen@assays$RNA@data["Cd19",]),3)
+
+get_split_pos.3 <- function(scrna, gene, id, step = 0.01) {
+  data.mat.surf <- data.frame(exp = round(normalize(scrna@assays$RNA@data[gene,]), 3),
+                              id = as.character(scrna@active.ident))
+  gene.prauc <- data.frame(x.val <- c(),
+                           margin <- c())
+  data.id <- data.mat.surf[data.mat.surf$id == id,]
+  data.other <- data.mat.surf[data.mat.surf$id != id,]
+  data.id.l <- nrow(data.id)
+  data.o.l <- nrow(data.other)
+  data.all.l <- nrow(data.mat.surf)
+
+  x.max <- 0
+  x.min <- 1
+  x.num <- 1/step
+
+  x.factor <- (mean(data.id$exp) + 0.001)/(mean(data.other$exp) + 0.001)
+
+  x.size.factor <- 10*(length(data.id$exp)/length(data.other$exp))
+
+  for (x.val in seq(0, 1, step)) {
+    tp <- sum(data.id$exp > x.val)
+    fp <- sum(data.other$exp > x.val)
+    tn <- sum(data.other$exp <= x.val)
+    fn <- sum(data.id$exp <= x.val)
+    data.i.a <- data.id[data.id$exp > x.val, ]
+    data.o.a <- data.other[data.other$exp > x.val, ]
+    data.i.b <- data.id[data.id$exp <= x.val, ]
+    data.o.b <- data.other[data.other$exp <= x.val, ]
+
+    x.margin <- sum((data.i.a$exp - x.val))*nrow(data.o.b) +
+      sum((x.val -data.o.b$exp))*nrow(data.i.a) -
+      sum((data.o.a$exp - x.val))*nrow(data.o.b)
+    x.margin <- x.margin/data.all.l
+
+    # x.margin <- sum((data.id[data.id$exp > x.val, ]$exp - x.val))*length(data.other[data.other$exp <x.val, ]$id) +
+    #   sum((x.val - data.other[data.other$exp <x.val, ]$exp))*length(data.id[data.id$exp > x.val, ]$id) -
+    #   sum((data.other[data.other$exp > x.val, ]$exp - x.val))*length(data.other[data.other$exp <x.val, ]$id)
+
+    x.margin.adj <- x.margin*(tp/data.id.l)*(tn/data.o.l)*(x.factor**2)
+
+    de <- data.frame(x.val, x.margin, x.margin.adj, tp, fp, "+")
+    gene.prauc <- rbind(gene.prauc, de)
+  }
+  gene.prauc <- gene.prauc[order(gene.prauc$x.margin, decreasing = T),]
+  x.split <- gene.prauc[1,]
+  rownames(x.split) <- paste(gene)
+  return(x.split)
+}
+
+start_time <- Sys.time()
+get_split_pos.2(scrna, "Cd19", "B Cell(Lung)")
+end_time <- Sys.time()
+end_time - start_time
+
+start_time <- Sys.time()
+get_split_pos.3(scrna, "Cd19", "B Cell(Lung)")
+end_time <- Sys.time()
+end_time - start_time
 
 ```
 
@@ -302,6 +740,15 @@ for (gene in c(rownames(makers.b[makers.b$avg_log2FC > 0, ]), "CD19")) {
 }
 
 df[order(df$x.margin, decreasing = T), ]
+
+
+df.dc <- data.frame()
+for (gene in rownames(markers.dc.t)) {
+  df.s <- get_split_pos.2(citeseq, gene, "DC")
+  df.dc <- rbind(df.dc, df.s)
+}
+
+df.dc <- df.dc[order(df.dc$x.margin.adj, decreasing = T), ]
 
 
 df.5 <- data.frame()
@@ -481,102 +928,82 @@ write.table(top50_markers_MAST_res1_pct25$gene, file = "genes.txt", col.names = 
 ```
 
 
-
 ```{r}
-scrna <- citeseq
-rm(citeseq)
-id <- "B"
-gene <- "CD79A"
-get_split_pos.1 <- function(scrna, gene, id, step = 0.01) {
-  data.mat.surf <- data.frame(exp = scrna@assays$RNA@data[gene,],
-                              id = as.character(scrna@active.ident))
-  gene.prauc <- data.frame(x.val <- c(),
-                           margin <- c())
-  data.id <- data.mat.surf[data.mat.surf$id == id,]
-  data.other <- data.mat.surf[data.mat.surf$id != id,]
+t.cells.genes <- c("Cd19", "Cd79b", "Ms4a1", "Cd22")
+t.cells.genes <- toupper(t.cells.genes)
 
-  x.max <- max(data.id$exp)
-  x.min <- min(data.id$exp)
-  x.num <- 1/step
-  
-  x.factor <- round((mean(data.id$exp) + 1)/(mean(data.other$exp) + 1), 3)
-  # x.factor.size <- length(data.other$id)/length(data.id$id)
-  x.factor.size <- 100*length(data.id$id)/length(data.mat.surf$id)
-  
-
-  for (x.val in seq(x.min, x.max, (x.max - x.min)/x.num)) {
-    tp <- sum(data.id$exp >= x.val)
-    fp <- sum(data.other$exp >= x.val)
-    # tn <- sum(data.other$exp < x.val)
-    # fn <- sum(data.id$exp < x.val)
-
-    # if (length(data.id$id) <= length(data.other$id)) {
-    #   x.margin <- tp - fp*x.factor.size
-    # }
-    # else{
-    #   x.margin <- tp - fp*x.factor.size
-    # }
-    # x.margin <- x.factor*x.margin
-    
-    # x.margin <- (tp*x.factor.size - fp)*(x.factor**2)
-    x.margin <- (tp - fp*x.factor.size)*(x.factor**2)
-    # x.margin.adj <- x.margin/((sum(data.other[data.other$exp > x.val,]$exp) + 50)*x.val)
-    # x.margin.adj <- x.margin/(10**((max(data.mat.surf$exp) - x.val)))
-    # x.margin.adj <- (tp - fp*x.factor.size)*(x.factor**2)/(x.val**3)
-    # x.margin.adj <- x.margin**(max(data.mat.surf$exp) - x.val)/data.other.sum
-    
-    # x.margin.adj <- x.margin*(sum(data.id[data.id$exp >= x.val,]$exp - x.val))/(x.val**5)
-    # x.margin.adj <- x.margin*(id.pr**2)/(x.val**4)
-    de <- data.frame(x.val, x.margin, "+", tp, fp)
-    # de <- data.frame(x.val, x.margin, x.margin.adj, "+", tp, fp)
-    gene.prauc <- rbind(gene.prauc, de)
-  }
-  gene.prauc <- gene.prauc[order(gene.prauc$x.margin, gene.prauc$x.val, decreasing = T),]
-  x.split <- gene.prauc[1,]
-  
-  x.margin.adj <- x.split$x.margin/((sum(data.other[data.other$exp > x.split$x.val,]$exp) + 5)*x.split$x.val)
-  x.split$x.margin.adj <- x.margin.adj
-  
-  rownames(x.split) <- paste(gene)
-  return(x.split)
+df <- data.frame()
+for (gene in t.cells.genes) {
+  df.s <- data.frame(t.test <- c(match(gene, rownames(markers.b.t))),
+                   wilcox.test <- c(match(gene, rownames(markers.b.wilcox))),
+                   mast <- c(match(gene, rownames(markers.b.mast))),
+                   LR <- c(match(gene, rownames(markers.b.lr))),
+                   SD <- c(match(gene, rownames(df.b)))
+                   )
+  colnames(df.s) <- c("T-test", "Wilcox", "MAST", "LR", "SD")
+  rownames(df.s) <- paste(gene)
+  df <- rbind(df, df.s)
 }
+
+########################################################################################################################################
+t.cells.genes <- c("Klrb1", "Ncr1")
+t.cells.genes <- toupper(t.cells.genes)
+# df <- data.frame()
+for (gene in t.cells.genes) {
+  df.s <- data.frame(t.test <- c(match(gene, rownames(markers.nk.t))),
+                   wilcox.test <- c(match(gene, rownames(markers.nk.wilcox))),
+                   mast <- c(match(gene, rownames(markers.nk.mast))),
+                   LR <- c(match(gene, rownames(markers.nk.lr))),
+                   SD <- c(match(gene, rownames(df.nk)))
+                   )
+  colnames(df.s) <- c("T-test", "Wilcox", "MAST", "LR", "SD")
+  rownames(df.s) <- paste(gene)
+  df <- rbind(df, df.s)
+}
+
+t.cells.genes <- c("Cd3d", "Cd3e", "Cd3g")
+t.cells.genes <- toupper(t.cells.genes)
+# df <- data.frame()
+for (gene in t.cells.genes) {
+  df.s <- data.frame(t.test <- c(match(gene, rownames(markers.t))),
+                   wilcox.test <- c(match(gene, rownames(markers.nk.wilcox))),
+                   mast <- c(match(gene, rownames(markers.nk.mast))),
+                   LR <- c(match(gene, rownames(markers.nk.lr))),
+                   SD <- c(match(gene, rownames(df.nk)))
+                   )
+  colnames(df.s) <- c("T-test", "Wilcox", "MAST", "LR", "SD")
+  rownames(df.s) <- paste(gene)
+  df <- rbind(df, df.s)
+}
+
+par(mar=c(5.1, 4.1, 4.1, 4.1))
+plot(as.matrix(t(df)), axis.col=list(side=1, las=2), axis.row = list(side=2, las=1), xlab="", ylab="", breaks=c(1,60), fmt.key="%.0f", na.print='Missing', main = "Cell markers")
+
+# pdf("plots/Lung.markers.plotmatrix.pdf", height = 7, width = 10)
+par(mar=c(5.1, 4.1, 4.1, 4.1))
+plot(as.matrix(t(df)), axis.col=list(side=1, las=2), axis.row = list(side=2, las=1), xlab="", ylab="", breaks=c(1,60), fmt.key="%.0f", na.print='Missing', main = "Cell markers")
+# dev.off()
+
+annotation_col = data.frame(
+  GeneClass = factor(rep(c("B cells", "NK cells", "T cells"), c(5, 3, 3)))
+                )
+rownames(annotation_col) = rownames(df)
+
+paletteLength <- 6
+myColor <- colorRampPalette(c("red", "white"))(paletteLength)
+# length(breaks) == length(paletteLength) + 1
+# use floor and ceiling to deal with even/odd length pallettelengths
+myBreaks <- c( 
+              seq(70/paletteLength, 70, length.out=floor(paletteLength)))
+
+pheatmap(t(df), color=myColor, breaks=myBreaks, cluster_row = FALSE, cluster_col = FALSE, annotation_col = annotation_col,  na_col = "#000000", angle_col = "45")
+
+# pdf("plots/Lung.markers.pheatmap.pdf", height = 7, width = 10)
+pheatmap(t(df), color=myColor, breaks=myBreaks, cluster_row = FALSE, cluster_col = FALSE, annotation_col = annotation_col,  na_col = "#000000", angle_col = "45")
+# dev.off()
 ```
 
 
-```{r}
-
-id <- "B"
-gene <- "CD79A"
-get_split_pos.2 <- function(scrna, gene, id) {
-  data.mat.surf <- data.frame(exp = scrna@assays$SCT@data[gene,],
-                              id = as.character(scrna@active.ident))
-  data.mat.surf <- data.mat.surf[order(data.mat.surf$exp, decreasing = T), ]
-  
-  list.id <- data.mat.surf$id
-  
-  id.size <- sum(data.mat.surf$id == id)
-  
-  K = sum(data.mat.surf$id == "B")
-  N = length(data.mat.surf$id)
-  
-  tp <- 0
-  fp <- 0
-  tp.fp
-  x.seq <- 1
-  
-  # for (x.seq in 1:id.size) {
-  #   ifelse(list.id[x.seq] == id, tp <- tp +1, fp <- fp +1)
-  #   if (tp >= 0.1*id.size) {
-  #     
-  #   }
-  # }
-
-}
-
-
-get_hgp(1, k, N, K, n+1)
-
-```
 
 
 ```{r}

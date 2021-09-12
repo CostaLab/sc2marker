@@ -2,20 +2,20 @@
 % Please edit documentation in R/Cell_markers.ident.R
 \name{makeid}
 \alias{makeid}
-\title{Reset cell group idents}
+\title{make id for plotting}
 \usage{
 makeid(scrna, id, panel = "seurat_clusters")
 }
 \arguments{
-\item{scrna}{seurat obj to be used}
+\item{scrna}{obj to use}
 
-\item{id}{interested cell group}
+\item{id}{interested cell id}
 
-\item{panel}{Ident panel in seurat obj meta.data}
+\item{panel}{ID panel in metadata of obj}
 }
 \value{
 seurat obj with re-set Idents
 }
 \description{
-Reset cell group idents
+Reset active.ident of obj for plotting.
 }
