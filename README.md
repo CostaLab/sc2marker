@@ -16,7 +16,7 @@ Identify single markers for specific cell groups
 ```{r}
 data(pbmc_small)
 Idents(pbmc_small) <- "groups"
-markers.results <- detect_marker(pbmc_small, "g2", do.fast = F)
+markers.results <- Detect_single_marker(pbmc_small, "g2", do.fast = F)
 ```
 
 
