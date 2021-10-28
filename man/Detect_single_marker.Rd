@@ -15,8 +15,12 @@ Detect_single_marker(
   do.fast = F,
   min.pct = 0.1,
   use.all = F,
+<<<<<<< HEAD
   do.f1score = F,
   pseudo.count = 0.01
+=======
+  do.f1score = F
+>>>>>>> refs/remotes/origin/main
 )
 }
 \arguments{

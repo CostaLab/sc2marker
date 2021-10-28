@@ -4,6 +4,7 @@
 \alias{get_gene_score_pos}
 \title{Calculate gene positive specific score}
 \usage{
+<<<<<<< HEAD
 get_gene_score_pos(
   scrna,
   gene,
@@ -13,6 +14,9 @@ get_gene_score_pos(
   slot = "data",
   pseudo.count = 0.01
 )
+=======
+get_gene_score_pos(scrna, gene, id, step = 0.01, assay = "RNA", slot = "data")
+>>>>>>> refs/remotes/origin/main
 }
 \arguments{
 \item{scrna}{obj to use}
