@@ -1176,7 +1176,7 @@ get_gene_score_pos <- function(scrna, gene, id, step = 0.01, assay = "RNA", slot
   tn <- sum(data.other$exp <= x.val)
 
   x.margin.adj <- x.margin*(tp/data.id.l)*(tn/data.o.l)*(x.factor**2)
-  x.val <- get_original_alpha(scrna, gene = gene, x.alpha = x.val)
+  x.val <- get_original_alpha(scrna, gene = gene, x.alpha = x.val, assay = assay, slot = slot)
   x.split <- data.frame(gene, x.val, x.margin, x.margin.adj, tp, fp, tn, fn, "+")
 
   # rownames(x.split) <- paste(gene)
@@ -1246,7 +1246,7 @@ get_gene_score_neg <- function(scrna, gene, id, step = 0.01, assay = "RNA", slot
   fn <- sum(data.id$exp >= x.val)
 
   x.margin.adj <- x.margin*(tp/data.id.l)*(tn/data.o.l)*(x.factor**2)
-  x.val <- get_original_alpha(scrna, gene = gene, x.alpha = x.val)
+  x.val <- get_original_alpha(scrna, gene = gene, x.alpha = x.val, assay = assay)
   x.split <- data.frame(gene, x.val, x.margin, x.margin.adj, tp, fp, tn, fn, "-")
 
   return(x.split)
@@ -1266,7 +1266,7 @@ get_gene_score_neg <- function(scrna, gene, id, step = 0.01, assay = "RNA", slot
 #'
 get_original_alpha <- function(scrna, gene, x.alpha, assay = "RNA", slot = "data"){
   DefaultAssay(scrna) <- assay
-  g.exprs <- FetchData(scrna, gene)
+  g.exprs <- FetchData(scrna, gene, slot = slot)
   g.max <- max(g.exprs[,1])
   g.min <- min(g.exprs[,1])
   alpha.ori <- x.alpha*g.max + g.min
