@@ -2,7 +2,7 @@ Package: sc2marker
 Type: Package
 Title: Detect marker panel from scRNA-seq profile
 Version: 0.1.0
-Author: Who wrote it
+Author: Ronghui Li
 Maintainer: <hilironghui@gmail.com>
 Description: More about what it does (maybe more than one line)
     Use four spaces when indenting paragraphs within the Description.
