@@ -1700,7 +1700,7 @@ get_gene_score <- function(exprs.matrix, id, gene, step = 0.01, pseudo.count = 0
   x.factor.p <- (mean(data.id$exp) + pseudo.count)/(mean(data.other$exp) + pseudo.count)
   x.factor.n <- (mean(data.other$exp) + pseudo.count)/(mean(data.id$exp) + pseudo.count)
 
-  for (x.val in seq(0, 1, step)) {
+  for (x.val in seq(0.01, 0.99, step)) {
     data.i.a <- data.id[data.id$exp > x.val, ]
     data.o.a <- data.other[data.other$exp > x.val, ]
     data.i.b <- data.id[data.id$exp <= x.val, ]
@@ -1759,85 +1759,6 @@ get_gene_score <- function(exprs.matrix, id, gene, step = 0.01, pseudo.count = 0
 }
 
 
-get_gene_score <- function(exprs.matrix, id, gene, step = 0.01, pseudo.count = 0.01){
-  data.mat.surf <- exprs.matrix
-  colnames(data.mat.surf) <- c("exp", "id")
-  exprs.max <- max(data.mat.surf$exp)
-  exprs.min <- min(data.mat.surf$exp)
-  data.mat.surf$exp <- normalize(data.mat.surf$exp)
-  data.mat.surf$exp <- round(data.mat.surf$exp, 3)
-
-  gene.prauc.p <- data.frame(x.val <- c(),
-                             margin <- c())
-  gene.prauc.n <- data.frame(x.val <- c(),
-                             margin <- c())
-
-  data.id <- data.mat.surf[data.mat.surf$id == id,]
-  data.other <- data.mat.surf[data.mat.surf$id != id,]
-  data.id.l <- nrow(data.id)
-  data.o.l <- nrow(data.other)
-  data.all.l <- nrow(data.mat.surf)
-
-  x.factor.p <- (mean(data.id$exp) + pseudo.count)/(mean(data.other$exp) + pseudo.count)
-  x.factor.n <- (mean(data.other$exp) + pseudo.count)/(mean(data.id$exp) + pseudo.count)
-
-  for (x.val in seq(0, 1, step)) {
-    data.i.a <- data.id[data.id$exp > x.val, ]
-    data.o.a <- data.other[data.other$exp > x.val, ]
-    data.i.b <- data.id[data.id$exp <= x.val, ]
-    data.o.b <- data.other[data.other$exp <= x.val, ]
-    x.margin.p <- sum((data.i.a$exp - x.val))*nrow(data.o.b) +
-      sum((x.val - data.o.b$exp))*nrow(data.i.a) -
-      sum((data.o.a$exp - x.val))*nrow(data.i.b)
-    x.margin.p <- x.margin.p/data.all.l
-    de.p <- data.frame(x.val, x.margin.p)
-    gene.prauc.p <- rbind(gene.prauc.p, de.p)
-
-    data.i.a <- data.id[data.id$exp < x.val, ]
-    data.o.a <- data.other[data.other$exp < x.val, ]
-    data.i.b <- data.id[data.id$exp >= x.val, ]
-    data.o.b <- data.other[data.other$exp >= x.val, ]
-
-    x.margin.n <- sum((data.i.a$exp - x.val))*nrow(data.o.b) +
-      sum((x.val -data.o.b$exp))*nrow(data.i.a) -
-      sum((data.o.a$exp - x.val))*nrow(data.i.b)
-    x.margin.n <- x.margin.n/data.all.l
-
-    x.margin.n <- 0 - x.margin.n
-
-    de.n <- data.frame(x.val, x.margin.n)
-    gene.prauc.n <- rbind(gene.prauc.n, de.n)
-  }
-
-  gene.prauc.p <- gene.prauc.p[order(gene.prauc.p$x.margin, decreasing = T),]
-  gene.prauc.n <- gene.prauc.n[order(gene.prauc.n$x.margin, decreasing = T),]
-
-  # pos
-  x.split <- gene.prauc.p[1,]
-  x.val <- x.split[,1]
-  x.margin <- x.split[,2]
-  tp <- sum(data.id$exp > x.val)
-  fp <- sum(data.other$exp > x.val)
-  fn <- sum(data.id$exp <= x.val)
-  tn <- sum(data.other$exp <= x.val)
-  x.margin.adj <- x.margin*(tp/data.id.l)*(tn/data.o.l)*(x.factor.p**2)
-  x.val <- x.val*exprs.max + exprs.min
-  x.split.p <- data.frame(gene, x.val, x.margin, x.margin.adj, tp, fp, tn, fn, "+")
-
-  x.split <- gene.prauc.n[1,]
-  x.val <- x.split[,1]
-  x.margin <- x.split[,2]
-  tp <- sum(data.id$exp < x.val)
-  fp <- sum(data.other$exp < x.val)
-  tn <- sum(data.other$exp >= x.val)
-  fn <- sum(data.id$exp >= x.val)
-
-  x.margin.adj <- x.margin*(tp/data.id.l)*(tn/data.o.l)*(x.factor.n**2)
-  x.val <- x.val*exprs.max + exprs.min
-  x.split.n <- data.frame(gene, x.val, x.margin, x.margin.adj, tp, fp, tn, fn, "-")
-
-  return(rbind(x.split.p, x.split.n))
-}
 
 
 #' Get cell names which meet cutoff

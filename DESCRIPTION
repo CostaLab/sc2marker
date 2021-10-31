@@ -1,14 +1,17 @@
 Package: sc2marker
-Type: Package
 Title: Detect marker panel from scRNA-seq profile
-Version: 0.1.0
+Version: 1.0.1
 Author: Ronghui Li
 Maintainer: <hilironghui@gmail.com>
 Description: More about what it does (maybe more than one line)
     Use four spaces when indenting paragraphs within the Description.
-License: What license is it under?
+URL: https://github.com/CostaLab/sc2marker
+License: MIT + file LICENSE
+biocViews:  SystemsBiology, SingleCell, Software
 Encoding: UTF-8
-LazyData: true
+LazyData: TRUE
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.1
 Imports:
 	data.table,
 	Seurat (>= 4.0.1),
@@ -19,6 +22,6 @@ Imports:
 	ggridges,
 	reshape2,
 	sctransform
-RoxygenNote: 7.1.1
-Depends: 
-    R (>= 3.50)
+Suggests:
+    knitr,
+    rmarkdown
