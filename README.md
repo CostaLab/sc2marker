@@ -7,7 +7,7 @@ Install scMarkerDetect with the simple comands below:
 
 ```{r}
 install.packages("devtools")
-devtools::install_github("https://github.com/CostaLab/scMarkerDetect", build_vignettes = TRUE)
+devtools::install_github("https://github.com/CostaLab/sc2marker", build_vignettes = TRUE)
 require(scMarkerDetect)
 ```
 
