@@ -1,5 +1,5 @@
-# scMarkerDetect
-scMarkerDetect is a toolkit for identifying specific markers for interested cell groups. 
+# sc2marker
+sc2marker is a toolkit for identifying specific markers for interested cell groups. 
 
 ## Install
 

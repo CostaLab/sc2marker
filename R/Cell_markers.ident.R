@@ -1623,6 +1623,7 @@ grid_pie_plot <- function(scrna, df.split, cellgroup, ncol = 2){
 #' @param min.pct only test genes that are detected in a minimum fraction of min.pct cells in either of the two populations. Meant to speed up the function by not testing genes that are very infrequently expressed. Default is 0.1
 #' @param use.all Don't do any filter on input geneset
 #' @return list of markers performance
+#' @export
 #'
 #'
 Detect_single_marker <- function(scrna, id, step = 0.1,  slot = "data", category = NULL,
@@ -1655,7 +1656,9 @@ Detect_single_marker <- function(scrna, id, step = 0.1,  slot = "data", category
   scrna@active.assay <- assay
   exprs.matrix <- FetchData(scrna, vars = c(rownames(markers), "ident"), slot = slot)
 
-  for (genes in rownames(markers)) {
+  gene.list <- toupper(rownames(markers))
+
+  for (genes in gene.list) {
     de <- data.frame(get_gene_score(exprs.matrix[, c(genes, "ident")], gene = genes, id = id, step = step, pseudo.count = pseudo.count))
     names(de)<-c("gene", "split.value","x.margin", "x.margin.adj", "TP", "FP", "TN", "FN", "direction")
     gene.rank.list <- rbind(gene.rank.list, de)
@@ -1758,7 +1761,36 @@ get_gene_score <- function(exprs.matrix, id, gene, step = 0.01, pseudo.count = 0
   return(rbind(x.split.p, x.split.n))
 }
 
+#' Get Antibody information table
+#' @param markers.list makers list from Detect single markers function
+#' @return list of markers performance
+#' @export
+#'
+get_antibody <- function(markers.list){
+  markers.list$gene <- toupper(markers.list$gene)
+  markers.list$antibody <- "NULL"
+  markers.list$x.margin <- round(markers.list$x.margin, 2)
+  markers.list$x.margin.adj <- round(markers.list$x.margin.adj, 2)
+  markers.list$antibody <- ifelse(markers.list$antibody == "NULL", IHC[match(markers.list$gene, IHC$Gene), ]$Antibody.RRID, markers.list$antibody)
+  markers.list$antibody <- ifelse(markers.list$antibody == "NULL", ICC[match(markers.list$gene, ICC$Gene), ]$Antibody.RRID, markers.list$antibody)
 
+
+  markers.list <- markers.list[, -3]
+  markers.list[,2] <- round(markers.list[,2], 3)
+  colnames(markers.list)[2] <- "Alpha"
+  colnames(markers.list)[3] <- "Score"
+  # msc.markers <- distinct(msc.markers, gene, .keep_all = TRUE)
+
+  DT::datatable(markers.list,
+                extensions = 'Buttons',
+                options = list(dom = 'Bfrtip',
+                               buttons = c('copy',
+                                           'csv',
+                                           'excel',
+                                           'pdf', 'print'),
+                               autoWidth = FALSE),
+                escape = F)
+}
 
 
 #' Get cell names which meet cutoff
@@ -2001,6 +2033,7 @@ Combine_markers_point_plot <- function(scrna, c.markers, id, ranking = 1, assay 
 #' @param step quantile steps
 #' @param show_split whether to show the split line
 #' @return Ridge plot
+#' @export
 #'
 
 plot_ridge <- function(scrna, id, genes, ncol = 1, step = 0.01, show_split = T){
@@ -2010,7 +2043,7 @@ plot_ridge <- function(scrna, id, genes, ncol = 1, step = 0.01, show_split = T){
     df.g <- get_gene_score_pos(scrna, gene, cell.id, step = step)
     df.c <- Seurat::FetchData(scrna, vars = c(gene, "ident"))
     df.c$ident <- ifelse(df.c$ident == cell.id, id, "Other")
-    df.c[,1] <- normalize(df.c[,1])
+    # df.c[,1] <- normalize(df.c[,1])
     df.c$gene <- paste(gene)
     rownames(df.c) <- NULL
     colnames(df.c) <- c("Exprs", "Ident", "Gene")
