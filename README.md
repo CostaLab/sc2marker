@@ -9,6 +9,7 @@ Install scMarkerDetect with the simple comands below:
 install.packages("devtools")
 devtools::install_github("https://github.com/CostaLab/sc2marker", build_vignettes = TRUE)
 require(sc2marker)
+require(Seurat)
 ```
 
 Identify single markers for specific cell groups

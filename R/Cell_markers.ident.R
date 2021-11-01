@@ -2044,6 +2044,7 @@ Combine_markers_point_plot <- function(scrna, c.markers, id, ranking = 1, assay 
 #' @export
 #'
 plot_ridge <- function(scrna, id, genes, ncol = 1, step = 0.01, show_split = T, assay = "RNA", slot = "data"){
+  require(ggplot2)
   df.all <-data.frame()
   df.split <-data.frame()
   for (gene in genes) {
