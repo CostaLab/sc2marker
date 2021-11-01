@@ -2035,25 +2035,26 @@ Combine_markers_point_plot <- function(scrna, c.markers, id, ranking = 1, assay 
 #' @return Ridge plot
 #' @export
 #'
-
-plot_ridge <- function(scrna, id, genes, ncol = 1, step = 0.01, show_split = T){
+plot_ridge <- function(scrna, id, genes, ncol = 1, step = 0.01, show_split = T, assay = "RNA", slot = "data"){
   df.all <-data.frame()
   df.split <-data.frame()
   for (gene in genes) {
-    df.g <- get_gene_score_pos(scrna, gene, cell.id, step = step)
-    df.c <- Seurat::FetchData(scrna, vars = c(gene, "ident"))
-    df.c$ident <- ifelse(df.c$ident == cell.id, id, "Other")
-    # df.c[,1] <- normalize(df.c[,1])
+    df.g <- get_gene_score_pos(scrna.merge, gene, id, step = 0.01)
+    df.c <-FetchData(scrna.merge, vars = c(gene, "ident"))
+    df.c$ident <- ifelse(df.c$ident == id, id, "Other")
     df.c$gene <- paste(gene)
-    rownames(df.c) <- NULL
+    # rownames(df.c) <- NULL
     colnames(df.c) <- c("Exprs", "Ident", "Gene")
     df.all <- rbind(df.all,df.c)
     df.g <- df.g[,c(1,2)]
     colnames(df.g) <- c("Gene", "Split")
     df.split <- rbind(df.split,df.g)
   }
+
   df.s <- melt(df.all)
   df.s[df.s == -Inf] <- 0
+  df.s$Gene <- factor(df.s$Gene, levels = as.character(genes))
+
   g <- ggplot(df.s, aes(x=value, y=variable, color=Ident, point_color=Ident, fill=Ident)) +
     geom_density_ridges_gradient(scale = 3, size = 0.3, rel_min_height = 0.01) +
     # scale_y_discrete(expand = c(.01, 0)) +
@@ -2071,15 +2072,13 @@ plot_ridge <- function(scrna, id, genes, ncol = 1, step = 0.01, show_split = T){
     theme(
       plot.title = element_text(hjust = 0.5),
       plot.subtitle = element_text(hjust = 0.5)
-    )+ xlim(0, 1)
-  if (show_split) {
-    g <- g + facet_wrap(~Gene, ncol = ncol) +
-      geom_vline(data = df.split, aes(xintercept = Split), linetype="dotted",
-                 color = "red", size=1.5)
-  }else{
-    g + facet_wrap(~Gene, ncol = ncol)
-  }
-  print(g)
+    )
+
+
+  g + facet_wrap(~Gene, ncol = 3) +
+    geom_vline(data = df.split, aes(xintercept = Split), linetype="dotted",
+               color = "red", size=1.5)
+
 }
 
 

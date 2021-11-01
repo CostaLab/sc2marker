@@ -14,9 +14,16 @@ require(scMarkerDetect)
 Identify single markers for specific cell groups
 
 ```{r}
-data(pbmc_small)
-Idents(pbmc_small) <- "groups"
-markers.results <- Detect_single_marker(pbmc_small, "g2", do.fast = F)
+t.markers <- Detect_single_marker(mca.spleen, id = "T cell(Spleen)", pseudo.count = 0.01)
 ```
 
+Display Markers
+```{r}
+get_antibody(t.markers)
+```
 
+Gene ridge plot
+
+```{r}
+
+```

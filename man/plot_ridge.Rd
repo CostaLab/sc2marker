@@ -4,7 +4,16 @@
 \alias{plot_ridge}
 \title{RidgePlot of selected genes, with split value}
 \usage{
-plot_ridge(scrna, id, genes, ncol = 1, step = 0.01, show_split = T)
+plot_ridge(
+  scrna,
+  id,
+  genes,
+  ncol = 1,
+  step = 0.01,
+  show_split = T,
+  assay = "RNA",
+  slot = "data"
+)
 }
 \arguments{
 \item{scrna}{seurat obj to be used}
