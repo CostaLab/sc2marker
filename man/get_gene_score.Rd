@@ -4,7 +4,14 @@
 \alias{get_gene_score}
 \title{Calculate gene specific score in both direction}
 \usage{
-get_gene_score(exprs.matrix, id, gene, step = 0.01, pseudo.count = 0.01)
+get_gene_score(
+  exprs.matrix,
+  id,
+  gene,
+  step = 0.01,
+  pseudo.count = 0.01,
+  min.tnr = 0.75
+)
 }
 \arguments{
 \item{exprs.matrix}{exprs matrix with ident panel}

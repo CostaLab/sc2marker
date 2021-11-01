@@ -725,7 +725,7 @@ get_split_pos_neg <- function(scrna, gene1, gene2, id, step = 0.01, assay = "RNA
   #
   # x.margin.adj <- x.margin*(tp/data.id.l)*(tn/data.o.l)*x.margin.a
 
-  data.mat.surf <- FetchData(scrna, vars = c(gene1, gene2, "ident"), slot = slot)
+  data.mat.surf <- Seurat::FetchData(scrna, vars = c(gene1, gene2, "ident"), slot = slot)
   colnames(data.mat.surf) <- c("exp1", "exp2", "id")
   data.mat.surf$exp1 <- normalize(data.mat.surf$exp1)
   data.mat.surf$exp2 <- normalize(data.mat.surf$exp2)
@@ -840,7 +840,7 @@ get_split_pos_neg <- function(scrna, gene1, gene2, id, step = 0.01, assay = "RNA
 
 get_split_neg_neg  <- function(scrna, gene1, gene2, id, step = 0.01, assay = "RNA", slot = "data") {
   scrna@active.assay <- assay
-  data.mat.surf <- FetchData(scrna, vars = c(gene1, gene2, "ident"), slot = slot)
+  data.mat.surf <- Seurat::FetchData(scrna, vars = c(gene1, gene2, "ident"), slot = slot)
   colnames(data.mat.surf) <- c("exp1", "exp2", "id")
   data.mat.surf$exp1 <- normalize(data.mat.surf$exp1)
   data.mat.surf$exp2 <- normalize(data.mat.surf$exp2)
@@ -1218,7 +1218,7 @@ get_gene_score_neg <- function(scrna, gene, id, step = 0.01, assay = "RNA", slot
   x.min <- 1
   x.num <- 1/step
 
-  x.factor <- (mean(data.id$exp) + pseudo.count)/(mean(data.other$exp) + pseudo.count)
+  x.factor <- (mean(data.other$exp) + pseudo.count)/(mean(data.id$exp) + pseudo.count)
 
   for (x.val in seq(0, 1, step)) {
     data.i.a <- data.id[data.id$exp < x.val, ]
@@ -1265,7 +1265,7 @@ get_gene_score_neg <- function(scrna, gene, id, step = 0.01, assay = "RNA", slot
 #' @return alpha before normalization
 #'
 get_original_alpha <- function(scrna, gene, x.alpha, assay = "RNA", slot = "data"){
-  DefaultAssay(scrna) <- assay
+  Seurat::DefaultAssay(scrna) <- assay
   g.exprs <- FetchData(scrna, gene, slot = slot)
   g.max <- max(g.exprs[,1])
   g.min <- min(g.exprs[,1])
@@ -1334,7 +1334,7 @@ GetCellNames <- function(scrna, gene, value, direction, assay = "RNA", slot = "d
   #   df <- data.frame(exp = scrna@assays$RNA@data[gene,])
   # }
   scrna@active.assay <- assay
-  df <- FetchData(scrna, vars = c(gene), slot = slot)
+  df <- Seurat::FetchData(scrna, vars = c(gene), slot = slot)
 
   colnames(df) <- "exp"
 
@@ -1506,6 +1506,7 @@ get_split_neg <- function(scrna, gene, id, step = 0.01, assay = "RNA", slot = "d
 #'
 #' @param x character
 #' @return up case first letter
+#' @export
 #'
 firstup <- function(x) {
   x <- tolower(x)
@@ -1628,7 +1629,7 @@ grid_pie_plot <- function(scrna, df.split, cellgroup, ncol = 2){
 #'
 Detect_single_marker <- function(scrna, id, step = 0.1,  slot = "data", category = NULL,
                                  geneset = NULL, assay = "RNA", do.fast = F, min.pct = 0.1,
-                                 use.all = F, do.f1score = F, pseudo.count = 0.01){
+                                 use.all = F, do.f1score = F, pseudo.count = 0.01, min.tnr = 0.8){
   if (is.null(geneset)) {
     geneset <- rownames(scrna[[assay]])
   }else{
@@ -1654,12 +1655,14 @@ Detect_single_marker <- function(scrna, id, step = 0.1,  slot = "data", category
   gene.rank.list <- data.frame()
 
   scrna@active.assay <- assay
-  exprs.matrix <- FetchData(scrna, vars = c(rownames(markers), "ident"), slot = slot)
+  exprs.matrix <- Seurat::FetchData(scrna, vars = c(rownames(markers), "ident"), slot = slot)
 
-  gene.list <- toupper(rownames(markers))
+  gene.list <- rownames(markers)
+  # gene.list <- toupper(rownames(markers))
 
   for (genes in gene.list) {
-    de <- data.frame(get_gene_score(exprs.matrix[, c(genes, "ident")], gene = genes, id = id, step = step, pseudo.count = pseudo.count))
+    de <- data.frame(get_gene_score(exprs.matrix[, c(genes, "ident")], gene = genes, id = id,
+                                    step = step, pseudo.count = pseudo.count, min.tnr = min.tnr))
     names(de)<-c("gene", "split.value","x.margin", "x.margin.adj", "TP", "FP", "TN", "FN", "direction")
     gene.rank.list <- rbind(gene.rank.list, de)
   }
@@ -1680,8 +1683,7 @@ Detect_single_marker <- function(scrna, id, step = 0.1,  slot = "data", category
 #' @return gene score in both direction
 #'
 #'
-
-get_gene_score <- function(exprs.matrix, id, gene, step = 0.01, pseudo.count = 0.01){
+get_gene_score <- function(exprs.matrix, id, gene, step = 0.01, pseudo.count = 0.01, min.tnr = 0.75){
   data.mat.surf <- exprs.matrix
   colnames(data.mat.surf) <- c("exp", "id")
   exprs.max <- max(data.mat.surf$exp)
@@ -1756,10 +1758,13 @@ get_gene_score <- function(exprs.matrix, id, gene, step = 0.01, pseudo.count = 0
 
   x.margin.adj <- x.margin*(tp/data.id.l)*(tn/data.o.l)*(x.factor.n**2)
   x.val <- x.val*exprs.max + exprs.min
+  if (tn/data.o.l < min.tnr) {
+    x.margin.adj <- 0
+  }
   x.split.n <- data.frame(gene, x.val, x.margin, x.margin.adj, tp, fp, tn, fn, "-")
-
   return(rbind(x.split.p, x.split.n))
 }
+
 
 #' Get Antibody information table
 #' @param markers.list makers list from Detect single markers function
@@ -1768,11 +1773,11 @@ get_gene_score <- function(exprs.matrix, id, gene, step = 0.01, pseudo.count = 0
 #'
 get_antibody <- function(markers.list){
   markers.list$gene <- toupper(markers.list$gene)
-  markers.list$antibody <- "NULL"
+  markers.list$antibody <- NULL
   markers.list$x.margin <- round(markers.list$x.margin, 2)
   markers.list$x.margin.adj <- round(markers.list$x.margin.adj, 2)
-  markers.list$antibody <- ifelse(markers.list$antibody == "NULL", IHC[match(markers.list$gene, IHC$Gene), ]$Antibody.RRID, markers.list$antibody)
-  markers.list$antibody <- ifelse(markers.list$antibody == "NULL", ICC[match(markers.list$gene, ICC$Gene), ]$Antibody.RRID, markers.list$antibody)
+  markers.list$antibody <- ifelse(is.null(markers.list$antibody), IHC[match(markers.list$gene, IHC$Gene), ]$Antibody.RRID, markers.list$antibody)
+  markers.list$antibody <- ifelse(is.null(markers.list$antibody), ICC[match(markers.list$gene, ICC$Gene), ]$Antibody.RRID, markers.list$antibody)
 
 
   markers.list <- markers.list[, -3]
@@ -1780,6 +1785,9 @@ get_antibody <- function(markers.list){
   colnames(markers.list)[2] <- "Alpha"
   colnames(markers.list)[3] <- "Score"
   # msc.markers <- distinct(msc.markers, gene, .keep_all = TRUE)
+
+  # markers.list <- markers.list[!is.null(markers.list$antibody), ]
+  markers.list <- markers.list[!is.null(markers.list$antibody),]
 
   DT::datatable(markers.list,
                 extensions = 'Buttons',
@@ -1946,7 +1954,7 @@ Combine_markers_point_plot <- function(scrna, c.markers, id, ranking = 1, assay 
   scrna@active.assay = assay
   markers.c <- c.markers[ranking, ]
   scrna@active.assay = assay
-  df <- FetchData(scrna, vars = c(markers.c$Gene1, markers.c$Gene2, "ident"))
+  df <- Seurat::FetchData(scrna, vars = c(markers.c$Gene1, markers.c$Gene2, "ident"))
   gene1 <- markers.c$Gene1
   gene2 <- markers.c$Gene2
   colnames(df) <- c("exp1", "exp2", "id")
@@ -2039,8 +2047,13 @@ plot_ridge <- function(scrna, id, genes, ncol = 1, step = 0.01, show_split = T, 
   df.all <-data.frame()
   df.split <-data.frame()
   for (gene in genes) {
-    df.g <- get_gene_score_pos(scrna.merge, gene, id, step = 0.01)
-    df.c <-FetchData(scrna.merge, vars = c(gene, "ident"))
+    fc <- Seurat::FoldChange(scrna, ident.1 = id, features = gene)$avg_log2FC
+    if (fc > 0) {
+      df.g <- get_gene_score_pos(scrna, gene, id, step = 0.01)
+    }else{
+      df.g <- get_gene_score_neg(scrna, gene, id, step = 0.01)
+    }
+    df.c <-Seurat::FetchData(scrna, vars = c(gene, "ident"))
     df.c$ident <- ifelse(df.c$ident == id, id, "Other")
     df.c$gene <- paste(gene)
     # rownames(df.c) <- NULL
@@ -2051,12 +2064,12 @@ plot_ridge <- function(scrna, id, genes, ncol = 1, step = 0.01, show_split = T, 
     df.split <- rbind(df.split,df.g)
   }
 
-  df.s <- melt(df.all)
+  df.s <- reshape2::melt(df.all)
   df.s[df.s == -Inf] <- 0
   df.s$Gene <- factor(df.s$Gene, levels = as.character(genes))
 
-  g <- ggplot(df.s, aes(x=value, y=variable, color=Ident, point_color=Ident, fill=Ident)) +
-    geom_density_ridges_gradient(scale = 3, size = 0.3, rel_min_height = 0.01) +
+  g <- ggplot2::ggplot(df.s, aes(x=value, y=variable, color=Ident, point_color=Ident, fill=Ident)) +
+    ggridges::geom_density_ridges_gradient(scale = 3, size = 0.3, rel_min_height = 0.01) +
     # scale_y_discrete(expand = c(.01, 0)) +
     # scale_x_continuous(expand = c(0, 0), name = "Expression") +
     scale_fill_manual(values = c("#CB181D80", "#2171B580")) +
@@ -2067,7 +2080,7 @@ plot_ridge <- function(scrna, id, genes, ncol = 1, step = 0.01, show_split = T, 
         fill = c("#CB181D80", "#2171B580"),
         color = NA, point_color = NA))
     ) +
-    theme_ridges(grid = FALSE) +
+    ggridges::theme_ridges(grid = FALSE) +
     ylab("") +
     theme(
       plot.title = element_text(hjust = 0.5),
@@ -2100,7 +2113,7 @@ plot_ridge <- function(scrna, id, genes, ncol = 1, step = 0.01, show_split = T, 
 
 get_gene_score_pos.fbeta <- function(scrna, gene, id, step = 0.01, assay = "RNA", slot = "data") {
   scrna@active.assay <- assay
-  data.mat.surf <- FetchData(scrna, vars = c(gene, "ident"), slot = slot)
+  data.mat.surf <- Seurat::FetchData(scrna, vars = c(gene, "ident"), slot = slot)
   colnames(data.mat.surf) <- c("exp", "id")
   data.mat.surf$exp <- normalize(data.mat.surf$exp)
 
@@ -2160,7 +2173,7 @@ get_gene_score_pos.fbeta <- function(scrna, gene, id, step = 0.01, assay = "RNA"
 
 get_gene_score_neg.fbeta <- function(scrna, gene, id, step = 0.01, assay = "RNA", slot = "data") {
   scrna@active.assay <- assay
-  data.mat.surf <- FetchData(scrna, vars = c(gene, "ident"), slot = slot)
+  data.mat.surf <- Seurat::FetchData(scrna, vars = c(gene, "ident"), slot = slot)
   colnames(data.mat.surf) <- c("exp", "id")
   data.mat.surf$exp <- normalize(data.mat.surf$exp)
 
