@@ -17,7 +17,7 @@ Identify single markers for specific cell groups
 t.markers <- Detect_single_marker(mca.spleen, id = "T cell(Spleen)", pseudo.count = 0.01)
 ```
 
-Display Markers
+Display Markers with antibody information
 ```{r}
 get_antibody(t.markers)
 ```
@@ -25,5 +25,5 @@ get_antibody(t.markers)
 Gene ridge plot
 
 ```{r}
-
+plot_ridge(mca.spleen, id = "T cell(Spleen)", genes = t.markers[1:9,]$gene, ncol = 3, assay = "RNA")
 ```
