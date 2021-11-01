@@ -16,7 +16,8 @@ Detect_single_marker(
   min.pct = 0.1,
   use.all = F,
   do.f1score = F,
-  pseudo.count = 0.01
+  pseudo.count = 0.01,
+  min.tnr = 0.8
 )
 }
 \arguments{

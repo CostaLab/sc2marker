@@ -21,7 +21,8 @@ Imports:
 	cowplot,
 	ggridges,
 	reshape2,
-	sctransform
+	sctransform,
+	DT
 Suggests:
     knitr,
     rmarkdown
