@@ -1617,39 +1617,69 @@ grid_pie_plot <- function(scrna, df.split, cellgroup, ncol = 2){
 #' @param scrna seurat obj to be used
 #' @param geneset custom genes to test, all genes in obj to use if NULL
 #' @param id interested cell group
-#' @param category indicate the ICC/IHC/Flow, if NULL use all genes.
+#' @param test.use Denotes which test to use. Available options are:
+#' \itemize{
+#'  \item{"IHC"} : use genes with valid antibody for IHC in human protein atlas
+#'  \item{"ICC"} : use genes with valid antibody for ICC in human protein atlas
+#'  \item{"ICC.IHC"} : use genes with valid antibody for ICC or IHC in human protein atlas
+#'  \item{"Flow"} : Only use cell surface genes with at least one valid antibody(ICC or IHC)
+#' }
 #' @param assay indicate the assay to compute
 #' @param slot indicate the slot of data to compute
 #' @param step quantile steps
-#' @param min.pct only test genes that are detected in a minimum fraction of min.pct cells in either of the two populations. Meant to speed up the function by not testing genes that are very infrequently expressed. Default is 0.1
+#' @param min.pct only test genes that are detected in a minimum fraction of cells in interested cell types. Default is 0.15
 #' @param use.all Don't do any filter on input geneset
+#' @param geneset custom genes to test
 #' @return list of markers performance
 #' @export
 #'
 #'
 Detect_single_marker <- function(scrna, id, step = 0.1,  slot = "data", category = NULL,
-                                 geneset = NULL, assay = "RNA", do.fast = F, min.pct = 0.1,
-                                 use.all = F, do.f1score = F, pseudo.count = 0.01, min.tnr = 0.8){
-  if (is.null(geneset)) {
-    geneset <- rownames(scrna[[assay]])
-  }else{
-    geneset <- intersect(rownames(scrna[[assay]]), geneset)
-  }
-  if (use.all) {
-    geneset <- intersect(rownames(scrna[[assay]]), geneset)
-    de <- Seurat::FoldChange(scrna, ident.1 = id, features = geneset)
-  }
-  if (!use.all) {
-    if (do.fast) {
-      de <- Seurat::FindMarkers(scrna, ident.1 = id, features = geneset)
-      de <- subset(de, p_val_adj < 0.05)
-    }else{
-      de <- Seurat::FoldChange(scrna, ident.1 = id, features = geneset)
-      de <- de[de$pct.1 > min.pct, ]
+                                 geneset = NULL, assay = "RNA", do.fast = F, min.pct = 0.15, min.fc = 0.25,
+                                 use.all = F, do.f1score = F, pseudo.count = 0.01, min.tnr = 0.65){
+  genes.to.use <- NULL
+
+  if (!is.null(category)) {
+    if (!(category %in% c("ICC.IHC", "ICC", "IHC", "Flow"))) {
+      print("category not found, it should be one of ICC, IHC, ICC.IHC and Flow.")
+      return(NULL)
+    }
+    if (category == "ICC.IHC") {
+      genes.to.use <- unique(union(ICC$Gene, IHC$Gene))
+    }else if(category == "ICC"){
+      genes.to.use <- ICC$Gene
+    }else if(category == "IHC"){
+      genes.to.use <- IHC$Gene
+    }else if(category == "Flow"){
+      genes.to.use <- surface.genes
     }
   }
+  # if (category == "ICC.IHC") {
+  #   genes.to.use <- unique(union(ICC$Gene, IHC$Gene))
+  # }else if(category == "ICC"){
+  #   genes.to.use <- ICC$Gene
+  # }else if(category == "IHC"){
+  #   genes.to.use <- IHC$Gene
+  # }else if(category == "Flow"){
+  #   genes.to.use <- surface.genes
+  # }
+  genes.to.use <- c(genes.to.use, geneset)
 
-  de$gene <- rownames(de)
+  if (!is.null(genes.to.use)) {
+    genes.to.use <- intersect.ignorecase(rownames(scrna[[assay]]), genes.to.use)
+  }else{
+    genes.to.use <- rownames(scrna[[assay]])
+  }
+
+  if (use.all) {
+    de <- Seurat::FoldChange(scrna, ident.1 = id, features = genes.to.use)
+  }
+  if (!use.all) {
+    de <- Seurat::FoldChange(scrna, ident.1 = id, features = genes.to.use)
+    de <- de[de$pct.1 > min.pct, ]
+    de$avg_log2FC <- abs(de$avg_log2FC)
+    de <- de[de$avg_log2FC > min.fc, ]}
+
   markers <- de
 
   gene.rank.list <- data.frame()
@@ -1661,9 +1691,10 @@ Detect_single_marker <- function(scrna, id, step = 0.1,  slot = "data", category
   # gene.list <- toupper(rownames(markers))
 
   for (genes in gene.list) {
-    de <- data.frame(get_gene_score(exprs.matrix[, c(genes, "ident")], gene = genes, id = id,
+    df.input <- exprs.matrix[, c(genes, "ident")]
+    de <- data.frame(get_gene_score(df.input, gene = genes, celltype = id,
                                     step = step, pseudo.count = pseudo.count, min.tnr = min.tnr))
-    names(de)<-c("gene", "split.value","x.margin", "x.margin.adj", "TP", "FP", "TN", "FN", "direction")
+    names(de)<-c("gene", "split.value","x.margin", "x.margin.adj", "TP", "FP", "TN", "FN", "direction", "FP details")
     gene.rank.list <- rbind(gene.rank.list, de)
   }
 
@@ -1683,33 +1714,34 @@ Detect_single_marker <- function(scrna, id, step = 0.1,  slot = "data", category
 #' @return gene score in both direction
 #'
 #'
-get_gene_score <- function(exprs.matrix, id, gene, step = 0.01, pseudo.count = 0.01, min.tnr = 0.75){
-  data.mat.surf <- exprs.matrix
-  colnames(data.mat.surf) <- c("exp", "id")
-  exprs.max <- max(data.mat.surf$exp)
-  exprs.min <- min(data.mat.surf$exp)
-  data.mat.surf$exp <- normalize(data.mat.surf$exp)
-  data.mat.surf$exp <- round(data.mat.surf$exp, 3)
+get_gene_score <- function(exprs.matrix, celltype, gene, step = 0.01, pseudo.count = 0.01, min.tnr = 0.65){
+  colnames(exprs.matrix) <- c("exp", "id")
+  # exprs.matrix$
+  exprs.matrix <- data.table::as.data.table(exprs.matrix)
+  exprs.max <- max(exprs.matrix$exp)
+  exprs.min <- min(exprs.matrix$exp)
+  exprs.matrix$exp <- normalize(exprs.matrix$exp)
+  exprs.matrix$exp <- round(exprs.matrix$exp, 3)
+  exprs.matrix$exp.n <- 0 - exprs.matrix$exp
 
   gene.prauc.p <- data.frame(x.val <- c(),
                              margin <- c())
   gene.prauc.n <- data.frame(x.val <- c(),
                              margin <- c())
+  celltype.in <- celltype
 
-  data.id <- data.mat.surf[data.mat.surf$id == id,]
-  data.other <- data.mat.surf[data.mat.surf$id != id,]
+  data.id <- subset(exprs.matrix, id == celltype.in)
+  data.other <- subset(exprs.matrix, id != celltype.in)
   data.id.l <- nrow(data.id)
   data.o.l <- nrow(data.other)
-  data.all.l <- nrow(data.mat.surf)
+  data.all.l <- nrow(exprs.matrix)
 
-  x.factor.p <- (mean(data.id$exp) + pseudo.count)/(mean(data.other$exp) + pseudo.count)
-  x.factor.n <- (mean(data.other$exp) + pseudo.count)/(mean(data.id$exp) + pseudo.count)
+  for (x.val in seq(0.001, 0.99, step)) {
 
-  for (x.val in seq(0.01, 0.99, step)) {
-    data.i.a <- data.id[data.id$exp > x.val, ]
-    data.o.a <- data.other[data.other$exp > x.val, ]
-    data.i.b <- data.id[data.id$exp <= x.val, ]
-    data.o.b <- data.other[data.other$exp <= x.val, ]
+    data.i.a <- subset(data.id, exp > x.val)
+    data.o.a <- subset(data.other, exp > x.val)
+    data.i.b <- subset(data.id, exp <= x.val)
+    data.o.b <- subset(data.other, exp <= x.val)
     x.margin.p <- sum((data.i.a$exp - x.val))*nrow(data.o.b) +
       sum((x.val - data.o.b$exp))*nrow(data.i.a) -
       sum((data.o.a$exp - x.val))*nrow(data.i.b)
@@ -1717,17 +1749,16 @@ get_gene_score <- function(exprs.matrix, id, gene, step = 0.01, pseudo.count = 0
     de.p <- data.frame(x.val, x.margin.p)
     gene.prauc.p <- rbind(gene.prauc.p, de.p)
 
-    data.i.a <- data.id[data.id$exp < x.val, ]
-    data.o.a <- data.other[data.other$exp < x.val, ]
-    data.i.b <- data.id[data.id$exp >= x.val, ]
-    data.o.b <- data.other[data.other$exp >= x.val, ]
+    x.val.n <- 0 - x.val
+    data.i.a <- subset(data.id, exp.n > x.val.n)
+    data.o.a <- subset(data.other, exp.n > x.val.n)
+    data.i.b <- subset(data.id, exp.n <= x.val.n)
+    data.o.b <- subset(data.other, exp.n <= x.val.n)
 
-    x.margin.n <- sum((data.i.a$exp - x.val))*nrow(data.o.b) +
-      sum((x.val -data.o.b$exp))*nrow(data.i.a) -
-      sum((data.o.a$exp - x.val))*nrow(data.i.b)
+    x.margin.n <- sum((data.i.a$exp.n - x.val.n))*nrow(data.o.b) +
+      sum((x.val.n -data.o.b$exp.n))*nrow(data.i.a) -
+      sum((data.o.a$exp.n - x.val.n))*nrow(data.i.b)
     x.margin.n <- x.margin.n/data.all.l
-
-    x.margin.n <- 0 - x.margin.n
 
     de.n <- data.frame(x.val, x.margin.n)
     gene.prauc.n <- rbind(gene.prauc.n, de.n)
@@ -1744,9 +1775,21 @@ get_gene_score <- function(exprs.matrix, id, gene, step = 0.01, pseudo.count = 0
   fp <- sum(data.other$exp > x.val)
   fn <- sum(data.id$exp <= x.val)
   tn <- sum(data.other$exp <= x.val)
+
+  fp.pro <- subset(data.other, exp > x.val)
+  fp.pro <- as.data.frame(table(fp.pro$id))
+  fp.pro <- fp.pro[order(fp.pro$Freq, decreasing = T),]
+  if (nrow(fp.pro) >= 5) {
+    fp.pro <- fp.pro[1:5,]
+  }
+  fp.string <- paste(fp.pro$Var1, fp.pro$Freq)
+  fp.string <- toString(fp.string)
+
+  x.factor.p <- (mean(data.id$exp) + pseudo.count)/(mean(data.other$exp) + pseudo.count)
+  # x.factor.p <- (mean(data.id$exp) + pseudo.count)/(mean(data.other$exp) + pseudo.count)
   x.margin.adj <- x.margin*(tp/data.id.l)*(tn/data.o.l)*(x.factor.p**2)
   x.val <- x.val*exprs.max + exprs.min
-  x.split.p <- data.frame(gene, x.val, x.margin, x.margin.adj, tp, fp, tn, fn, "+")
+  x.split.p <- data.frame(gene, x.val, x.margin, x.margin.adj, tp, fp, tn, fn, "+", fp.string)
 
   x.split <- gene.prauc.n[1,]
   x.val <- x.split[,1]
@@ -1756,12 +1799,22 @@ get_gene_score <- function(exprs.matrix, id, gene, step = 0.01, pseudo.count = 0
   tn <- sum(data.other$exp >= x.val)
   fn <- sum(data.id$exp >= x.val)
 
+  fp.pro <- subset(data.other, exp < x.val)
+  fp.pro <- as.data.frame(table(fp.pro$id))
+  fp.pro <- fp.pro[order(fp.pro$Freq, decreasing = T),]
+  if (nrow(fp.pro) >= 5) {
+    fp.pro <- fp.pro[1:5,]
+  }
+  fp.string <- paste(fp.pro$Var1, fp.pro$Freq)
+  fp.string <- toString(fp.string)
+
+  x.factor.n <- round(1/x.factor.p, 1)
   x.margin.adj <- x.margin*(tp/data.id.l)*(tn/data.o.l)*(x.factor.n**2)
   x.val <- x.val*exprs.max + exprs.min
   if (tn/data.o.l < min.tnr) {
     x.margin.adj <- 0
   }
-  x.split.n <- data.frame(gene, x.val, x.margin, x.margin.adj, tp, fp, tn, fn, "-")
+  x.split.n <- data.frame(gene, x.val, x.margin, x.margin.adj, tp, fp, tn, fn, "-", fp.string)
   return(rbind(x.split.p, x.split.n))
 }
 
@@ -2116,6 +2169,11 @@ get_gene_score_pos.fbeta <- function(scrna, gene, id, step = 0.01, assay = "RNA"
   scrna@active.assay <- assay
   data.mat.surf <- Seurat::FetchData(scrna, vars = c(gene, "ident"), slot = slot)
   colnames(data.mat.surf) <- c("exp", "id")
+
+  colnames(data.mat.surf) <- c("exp", "id")
+  x.max <- max(data.mat.surf$exp)
+  x.min <- min(data.mat.surf$exp)
+
   data.mat.surf$exp <- normalize(data.mat.surf$exp)
 
   gene.prauc <- data.frame(x.val <- c(),
@@ -2151,6 +2209,7 @@ get_gene_score_pos.fbeta <- function(scrna, gene, id, step = 0.01, assay = "RNA"
   tn <- sum(data.other$exp <= x.val)
 
   x.margin.adj <- x.margin
+  x.val <- x.val*x.max + x.min
   x.split <- data.frame(gene, x.val, x.margin, x.margin.adj, tp, fp, "+")
   return(x.split)
 }
@@ -2215,4 +2274,16 @@ get_gene_score_neg.fbeta <- function(scrna, gene, id, step = 0.01, assay = "RNA"
   return(x.split)
 }
 
-
+#' Intersect 2 list ignoring the cases and return the elements in list1
+#' @param list1 list 1 of genes
+#' @param list2 list 2 of genes
+#' @export
+#' @return Ridge plot
+#'
+intersect.ignorecase <- function(list1, list2){
+  list1.u <- toupper(list1)
+  list2.u <- toupper(list2)
+  list12.u <- intersect(list1.u, list2.u)
+  list.r <- list1[match(list12.u, list1.u)]
+  return(list.r)
+}

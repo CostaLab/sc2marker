@@ -13,11 +13,12 @@ Detect_single_marker(
   geneset = NULL,
   assay = "RNA",
   do.fast = F,
-  min.pct = 0.1,
+  min.pct = 0.15,
+  min.fc = 0.25,
   use.all = F,
   do.f1score = F,
   pseudo.count = 0.01,
-  min.tnr = 0.8
+  min.tnr = 0.65
 )
 }
 \arguments{
@@ -29,15 +30,21 @@ Detect_single_marker(
 
 \item{slot}{indicate the slot of data to compute}
 
-\item{category}{indicate the ICC/IHC/Flow, if NULL use all genes.}
-
-\item{geneset}{custom genes to test, all genes in obj to use if NULL}
+\item{geneset}{custom genes to test}
 
 \item{assay}{indicate the assay to compute}
 
-\item{min.pct}{only test genes that are detected in a minimum fraction of min.pct cells in either of the two populations. Meant to speed up the function by not testing genes that are very infrequently expressed. Default is 0.1}
+\item{min.pct}{only test genes that are detected in a minimum fraction of cells in interested cell types. Default is 0.15}
 
 \item{use.all}{Don't do any filter on input geneset}
+
+\item{test.use}{Denotes which test to use. Available options are:
+\itemize{
+\item{"IHC"} : use genes with valid antibody for IHC in human protein atlas
+\item{"ICC"} : use genes with valid antibody for ICC in human protein atlas
+\item{"ICC.IHC"} : use genes with valid antibody for ICC or IHC in human protein atlas
+\item{"Flow"} : Only use cell surface genes with at least one valid antibody(ICC or IHC)
+}}
 }
 \value{
 list of markers performance

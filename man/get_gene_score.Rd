@@ -6,21 +6,21 @@
 \usage{
 get_gene_score(
   exprs.matrix,
-  id,
+  celltype,
   gene,
   step = 0.01,
   pseudo.count = 0.01,
-  min.tnr = 0.75
+  min.tnr = 0.65
 )
 }
 \arguments{
 \item{exprs.matrix}{exprs matrix with ident panel}
 
-\item{id}{interested cell id}
-
 \item{gene}{gene to use}
 
 \item{step}{quantile step}
+
+\item{id}{interested cell id}
 }
 \value{
 gene score in both direction
