@@ -1,5 +1,6 @@
 # sc2marker
-sc2marker is a toolkit for identifying specific markers for interested cell groups. 
+
+sc2marker is a toolkit for identification of cell specific markers for clusters of cells in a single cell RNA sequencing data set. In particular, sc2marker focus on markers that have valid antibodies to be used for either imaging or flow analyis.
 
 ## Install
 
