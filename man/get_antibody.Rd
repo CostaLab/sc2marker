@@ -4,13 +4,15 @@
 \alias{get_antibody}
 \title{Get Antibody information table}
 \usage{
-get_antibody(markers.list)
+get_antibody(markers.list, rm.noab = T)
 }
 \arguments{
 \item{markers.list}{makers list from Detect single markers function}
+
+\item{rm.noab}{whether to remove genes without antibody information. Default TRUE.}
 }
 \value{
-list of markers performance
+list of markers with antibody information
 }
 \description{
 Get Antibody information table

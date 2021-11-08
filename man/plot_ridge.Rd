@@ -12,7 +12,8 @@ plot_ridge(
   step = 0.01,
   show_split = T,
   assay = "RNA",
-  slot = "data"
+  slot = "data",
+  aggr.other = T
 )
 }
 \arguments{
@@ -25,6 +26,8 @@ plot_ridge(
 \item{step}{quantile steps}
 
 \item{show_split}{whether to show the split line}
+
+\item{aggr.other}{whether to aggregate other cell clusters}
 }
 \value{
 Ridge plot
