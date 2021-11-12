@@ -1,12 +1,4 @@
 
-#' Compute PRAUC for positive markers
-#' @param scrna seurat obj to be used
-#' @param gene gene to test
-#' @param id interested cell group
-#' @param step quantile steps
-#' @return PRAUC of input gene
-#'
-
 get_gene_PRAUC_pos <- function(scrna, gene, id, step = 0.01) {
   data.mat.surf <- data.frame(exp = scrna@assays$RNA@data[gene,],
                               id = as.character(scrna@active.ident))
@@ -45,10 +37,6 @@ get_gene_PRAUC_pos_matrix <- function(scrna, gene, id, step = 0.01) {
   data.id <- data.mat.surf[data.mat.surf$id == id,]
   data.other <- data.mat.surf[data.mat.surf$id != id,]
 
-  # x.max <- max(data.id$exp)
-  # x.min <- min(data.id$exp)
-
-  # for (x.val in seq(x.min, x.max, (x.max - x.min)/100)) {
   for (x.val in quantile(data.mat.surf$exp, seq(0, 1, step))) {
 
     tp <- sum(data.id$exp >= x.val)
@@ -1204,7 +1192,7 @@ get_gene_score_pos <- function(scrna, gene, id, step = 0.01, assay = "RNA", slot
     data.o.b <- subset(data.other, exp <= x.val)
     x.margin.p <- sum((data.i.a$exp - x.val))*nrow(data.o.b) +
       sum((x.val - data.o.b$exp))*nrow(data.i.a) -
-      sum((data.o.a$exp - x.val))*nrow(data.i.b)
+      sum((data.o.a$exp - x.val))*nrow(data.i.b)# +
     x.margin.p <- x.margin.p/data.all.l
     de.p <- data.frame(x.val, x.margin.p)
     gene.prauc.p <- rbind(gene.prauc.p, de.p)
@@ -1838,8 +1826,8 @@ Detect_single_marker <- function(scrna, id, step = 0.1,  slot = "data", category
   genes.to.use <- NULL
 
   if (!is.null(category)) {
-    if (!(category %in% c("ICC.IHC", "ICC", "IHC", "Flow"))) {
-      print("category not found, it should be one of ICC, IHC, ICC.IHC and Flow.")
+    if (!(category %in% c("ICC.IHC", "ICC", "IHC", "Flow", "FlowComet"))) {
+      print("category not found, it should be one of ICC, IHC, ICC.IHC, FlowComet or Flow.")
       return(NULL)
     }
     if (category == "ICC.IHC") {
@@ -1852,17 +1840,14 @@ Detect_single_marker <- function(scrna, id, step = 0.1,  slot = "data", category
       genes.to.use <- surface.genes
     }
   }
-  # if (category == "ICC.IHC") {
-  #   genes.to.use <- unique(union(ICC$Gene, IHC$Gene))
-  # }else if(category == "ICC"){
-  #   genes.to.use <- ICC$Gene
-  # }else if(category == "IHC"){
-  #   genes.to.use <- IHC$Gene
-  # }else if(category == "Flow"){
-  #   genes.to.use <- surface.genes
-  # }
-  genes.to.use <- c(genes.to.use, geneset)
 
+  if (!is.null(category)){
+    if(category == "FlowComet"){
+      genes.to.use <- intersect(firstup(comet_genes), rownames(scrna[[assay]]))
+    }
+  }
+
+  genes.to.use <- c(genes.to.use, geneset)
   if (!is.null(genes.to.use)) {
     genes.to.use <- intersect.ignorecase(rownames(scrna[[assay]]), genes.to.use)
   }else{
@@ -2019,7 +2004,8 @@ get_gene_score <- function(exprs.matrix, celltype, gene, step = 0.01, pseudo.cou
 
 #' Get Antibody information table
 #' @param markers.list makers list from Detect single markers function
-#' @return list of markers performance
+#' @param rm.noab whether to remove genes without antibody information. Default TRUE.
+#' @return list of markers with antibody information
 #' @export
 #'
 get_antibody <- function(markers.list, rm.noab = T){
@@ -2047,7 +2033,7 @@ get_antibody <- function(markers.list, rm.noab = T){
     markers.list <- markers.list[!is.na(markers.list$antibody),]
   }
 
-
+  rownames(markers.list) <- 1:nrow(markers.list)
   DT::datatable(markers.list,
                 extensions = 'Buttons',
                 options = list(dom = 'Bfrtip',
@@ -2293,6 +2279,7 @@ Combine_markers_point_plot <- function(scrna, c.markers, id, ranking = 1, assay 
   print(g)
 }
 
+
 #' RidgePlot of selected genes, with split value
 #' @param scrna seurat obj to be used
 #' @param genes genes to plot
@@ -2371,22 +2358,28 @@ plot_ridge <- function(scrna, id, genes, ncol = 1, step = 0.01, show_split = T, 
       colnames(df.g) <- c("Gene", "Split")
       df.split <- rbind(df.split,df.g)
     }
-    g <- ggplot(df.all, aes(y=reorder(Ident, Exprs , mean),x=Exprs,fill=Ident)) +
-      geom_density_ridges()+
+    df.split$Gene <- factor(df.split$Gene, levels = c(genes))
+    df.all$Gene <- factor(df.all$Gene, levels = c(genes))
+    g <- ggplot(df.all, aes(y=reorder(Ident, Exprs , mean),x=Exprs, fill = stat(x))) +
+      geom_density_ridges_gradient()+
+      scale_fill_viridis_c(option = "D")+
       theme(legend.position = "none")+
       theme(
         plot.title = element_text(hjust = 0.5),
         plot.subtitle = element_text(hjust = 0.5)
-      )
-    g <- g + facet_wrap(~Gene, ncol = ncol) +
+      ) + ylab("") + xlab("")
+    g <- g  +
       geom_vline(data = df.split, aes(xintercept = Split), linetype="dotted",
-                 color = "red", size=1.5)
+                 color = "red", size=1.5) +
+      facet_wrap(~Gene, ncol = ncol)
     # return()
   }
+  g <- g + theme_bw() +
+    theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
   print(g)
+  return(g)
 }
-
-
 
 #' Calculate gene positive specific score with FBeta (Hypergate like approach)
 #'
@@ -2525,3 +2518,5 @@ intersect.ignorecase <- function(list1, list2){
   list.r <- list1[match(list12.u, list1.u)]
   return(list.r)
 }
+
+
