@@ -2,7 +2,7 @@
 % Please edit documentation in R/Cell_markers.ident.R
 \name{firstup}
 \alias{firstup}
-\title{Firstup gene names}
+\title{Firstup character}
 \usage{
 firstup(x)
 }
@@ -13,5 +13,5 @@ firstup(x)
 up case first letter
 }
 \description{
-Firstup gene names
+Firstup character
 }
