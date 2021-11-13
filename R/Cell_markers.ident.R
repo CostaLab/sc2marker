@@ -1986,8 +1986,8 @@ plot_ridge <- function(scrna, id, genes, ncol = 1, step = 0.01, show_split = T, 
     }
     df.split$Gene <- factor(df.split$Gene, levels = c(genes))
     df.all$Gene <- factor(df.all$Gene, levels = c(genes))
-    g <- ggplot(df.all, aes(y=reorder(Ident, Exprs , mean),x=Exprs, fill = stat(x))) +
-      geom_density_ridges_gradient()+
+    g <- ggplot2::ggplot(df.all, aes(y=reorder(Ident, Exprs , mean),x=Exprs, fill = stat(x))) +
+      ggridges::geom_density_ridges_gradient()+
       scale_fill_viridis_c(option = "D")+
       theme(legend.position = "none")+
       theme(
