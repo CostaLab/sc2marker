@@ -1,5 +1,3 @@
-
-
 #' UmapPlot based on results from Markers Greedy Search
 #' @param scrna seurat objects
 #' @param df.split results from Greedy Search
@@ -1043,7 +1041,7 @@ get_gene_score_neg <- function(scrna, gene, id, step = 0.01, assay = "RNA", slot
 
   gene.prauc.n <- data.frame(x.val <- c(),
                              margin <- c())
-  celltype.in <- celltype
+  celltype.in <- id
 
   data.id <- subset(exprs.matrix, id == celltype.in)
   data.other <- subset(exprs.matrix, id != celltype.in)
@@ -1928,7 +1926,7 @@ plot_ridge <- function(scrna, id, genes, ncol = 1, step = 0.01, show_split = T, 
       if (fc > 0) {
         df.g <- get_gene_score_pos(scrna, gene, id, step = 0.01, assay = assay, slot = slot)
       }else{
-        df.g <- get_gene_score_neg(scrna, gene, id, step = 0.01, assay = assay, slot = slot)
+        df.g <- get_gene_score_neg(scrna, gene = gene, id = id, step = 0.01, assay = assay, slot = slot)
       }
       df.c <-Seurat::FetchData(scrna, vars = c(gene, "ident"))
       df.c$ident <- ifelse(df.c$ident == id, id, "Other")
@@ -1944,6 +1942,7 @@ plot_ridge <- function(scrna, id, genes, ncol = 1, step = 0.01, show_split = T, 
     df.s <- reshape2::melt(df.all)
     df.s[df.s == -Inf] <- 0
     df.s$Gene <- factor(df.s$Gene, levels = as.character(genes))
+    df.split$Gene <- factor(df.split$Gene, levels = c(genes))
 
     g <- ggplot2::ggplot(df.s, aes(x=value, y=variable, color=Ident, point_color=Ident, fill=Ident)) +
       ggridges::geom_density_ridges_gradient(scale = 3, size = 0.3, rel_min_height = 0.01) +
@@ -1963,7 +1962,7 @@ plot_ridge <- function(scrna, id, genes, ncol = 1, step = 0.01, show_split = T, 
         plot.title = element_text(hjust = 0.5),
         plot.subtitle = element_text(hjust = 0.5)
       )
-
+    df.split$Gene <- factor(df.split$Gene, levels = c(genes))
     g <- g + facet_wrap(~Gene, ncol = ncol) +
       geom_vline(data = df.split, aes(xintercept = Split), linetype="dotted",
                  color = "red", size=1.5)
