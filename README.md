@@ -47,7 +47,7 @@ get_antibody(t.markers)
 To automatically generate the reports of all cell clusters, you can run following command:
 
 ```{r}
-generate_report(mca.spleen, all.markers)
+generate_report(mca.spleen, all.markers, fpath = ".")
 ```
 
 
