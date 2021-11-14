@@ -1641,10 +1641,20 @@ get_antibody <- function(markers.list, rm.noab = T){
   markers.list$x.margin.adj <- round(markers.list$x.margin.adj, 2)
   IHC$Gene <- toupper(IHC$Gene)
   ICC$Gene <- toupper(ICC$Gene)
-  markers.list$antibody <- ifelse(markers.list$antibody == "NULL",
-                                  IHC[match(markers.list$gene, IHC$Gene), ]$Antibody.RRID, markers.list$antibody)
-  markers.list$antibody <- ifelse(markers.list$antibody == "NULL",
-                                  ICC[match(markers.list$gene, ICC$Gene), ]$Antibody.RRID, markers.list$antibody)
+
+  for (i in 1:nrow(markers.list)) {
+    gene.i <- markers.list[i,]$gene
+    if (gene.i %in% IHC$Gene) {
+      markers.list[i,]$antibody <- IHC[IHC$Gene == gene.i, ]$Antibody.RRID
+    }
+    if (gene.i %in% ICC$Gene) {
+      markers.list[i,]$antibody <- ICC[ICC$Gene == gene.i, ]$Antibody.RRID
+    }
+  }
+  # markers.list$antibody <- ifelse(markers.list$antibody == "NULL",
+  #                                 IHC[match(markers.list$gene, IHC$Gene), ]$Antibody.RRID, markers.list$antibody)
+  # markers.list$antibody <- ifelse(markers.list$antibody == "NULL",
+  #                                 ICC[match(markers.list$gene, ICC$Gene), ]$Antibody.RRID, markers.list$antibody)
 
 
   markers.list <- markers.list[, -3]
@@ -2004,7 +2014,7 @@ plot_ridge <- function(scrna, id, genes, ncol = 1, step = 0.01, show_split = T, 
     theme(panel.border = element_blank(), panel.grid.major = element_blank(),
           panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
   print(g)
-  return(g)
+  # return(g)
 }
 
 #' Calculate gene positive specific score with FBeta (Hypergate like approach)
@@ -2144,5 +2154,97 @@ intersect.ignorecase <- function(list1, list2){
   list.r <- list1[match(list12.u, list1.u)]
   return(list.r)
 }
+
+#' Detect single markers of all cell groups
+#' @param scrna seurat obj to be used
+#' @param geneset custom genes to test, all genes in obj to use if NULL
+#' @param id interested cell group
+#' @param test.use Denotes which test to use. Available options are:
+#' \itemize{
+#'  \item{"IHC"} : use genes with valid antibody for IHC in human protein atlas
+#'  \item{"ICC"} : use genes with valid antibody for ICC in human protein atlas
+#'  \item{"ICC.IHC"} : use genes with valid antibody for ICC or IHC in human protein atlas
+#'  \item{"Flow"} : Only use cell surface genes with at least one valid antibody(ICC or IHC)
+#' }
+#' @param assay indicate the assay to compute
+#' @param slot indicate the slot of data to compute
+#' @param step quantile steps
+#' @param min.pct only test genes that are detected in a minimum fraction of cells in interested cell types. Default is 0.15
+#' @param use.all Don't do any filter on input geneset
+#' @param geneset custom genes to test
+#' @return list of markers performance
+#' @export
+#'
+#'
+Detect_single_marker_all <- function(scrna, step = 0.1,  slot = "data", category = NULL,
+                                     geneset = NULL, assay = "RNA", do.fast = F, min.pct = 0.15, min.fc = 0.25,
+                                     use.all = F, do.f1score = F, pseudo.count = 0.01, min.tnr = 0.65,...){
+  all.list <- vector("list")
+  for (id in unique(scrna@active.ident)) {
+    message(paste("Calculating Markers for", id))
+    df.s <- Detect_single_marker(scrna = scrna, id = id, step = step,
+                                 slot = slot, assay = assay,
+                                 min.pct = min.pct, min.fc = min.fc,
+                                 min.tnr = min.tnr, pseudo.count = pseudo.count,
+                                 use.all = use.all, do.f1score = do.f1score,
+                                 category = category, geneset = geneset, do.fast = do.fast,
+                                 ...)
+    all.list[[id]] <- df.s
+  }
+  return(all.list)
+}
+
+
+
+#' generate  html report for single markers of all cell groups
+#' @param scrna seurat obj to be used
+#' @param markers.list results of Detect_single_marker_all()
+#' @param aggr.other whether to aggregate other celltypes
+#' @param ridge_ncol
+#' @param fpath Path to generate the report
+#' @return list of markers performance
+#' @export
+#'
+#'
+generate_report <- function(scrna, markers.list,
+                            fpath = ".", aggr.other = F,
+                            top_n_genes = 6, ridge_ncol = 3,
+                            ...){
+  markers.all <- markers.list
+  saveRDS(markers.all, file = file.path(fpath, "sc2marker.allmarkers.intermediate.rds"))
+  saveRDS(scrna, file = file.path(fpath, "sc2marker.scrna.intermediate.rds"))
+  generate_report_rmd(scrna = scrna, fpath = fpath,
+                      aggr.other = aggr.other,
+                      top_n_genes = top_n_genes,
+                      ridge_ncol = ridge_ncol)
+  rmarkdown::render(file.path(fpath, "sc2marker.report.Rmd"))
+  unlink(file.path("sc2marker.allmarkers.intermediate.rds"))
+  unlink(file.path("sc2marker.scrna.intermediate.rds"))
+}
+
+
+#' generate  html report for single markers of all cell groups
+#' @param scrna seurat obj to be used
+#' @param top_n_genes top number of genes for RidgePlot
+#' @param sc2marker_ncol number of col of Ridgeplot
+#' @param fname Name of repoort
+#' @param fpath Path to generate report
+#' @return list of markers performance
+#' @export
+#'
+#'
+generate_report_rmd <- function(scrna, aggr.other = F, top_n_genes = 6, ridge_ncol = 3,
+                                fname = "sc2marker.report.Rmd", fpath = "."){
+  write(setup.template, file = file.path(fpath, fname))
+  for (id in unique(scrna@active.ident)) {
+    chunk.template.s <- chunk.template
+    chunk.template.s <- gsub("sc2marker_celltype", paste("\"",id, "\"", sep = ""), chunk.template.s)
+    chunk.template.s <- gsub("sc2marker_aggrother", aggr.other, chunk.template.s)
+    chunk.template.s <- gsub("sc2marker_ncol", ridge_ncol, chunk.template.s)
+    chunk.template.s <- gsub("top_n_genes", top_n_genes, chunk.template.s)
+    write(chunk.template.s, file = file.path(fpath, fname), append = T)
+  }
+}
+
 
 
