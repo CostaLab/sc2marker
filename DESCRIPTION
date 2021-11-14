@@ -22,7 +22,7 @@ Imports:
 	ggridges,
 	reshape2,
 	sctransform,
-	DT
+	DT,
+	rmarkdown,
 Suggests:
-    knitr,
-    rmarkdown
+    knitr
