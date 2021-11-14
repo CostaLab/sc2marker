@@ -30,3 +30,25 @@ and you can generate ridge plot with the following command:
 ```{r}
 plot_ridge(mca.spleen, id = "T cell(Spleen)", genes = t.markers[1:9,]$gene, ncol = 3, assay = "RNA")
 ```
+
+To calculate markers for all cell clusters, you can do by following command:
+
+```{r}
+all.markers <- Detect_single_marker_all(mca.spleen, category = "Flow")
+```
+
+To Check T cell markers from results of all clusters, and get the antibody information, you can do following.
+
+```{r}
+t.markers <- all.markers[["T cell(Spleen)"]]
+get_antibody(t.markers)
+```
+
+To automatically generate the reports of all cell clusters, you can run following command:
+
+```{r}
+generate_report(mca.spleen, all.markers)
+```
+
+
+
