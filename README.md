@@ -28,7 +28,7 @@ get_antibody(t.markers)
 and you can generate ridge plot with the following command:
 
 ```{r}
-plot_ridge(mca.spleen, id = "T cell(Spleen)", genes = t.markers[1:9,]$gene, ncol = 3, assay = "RNA")
+plot_ridge(mca.spleen, id = "T cell(Spleen)", genes = t.markers[1:9,]$gene, ncol = 3, assay = "RNA", aggr.other = F)
 ```
 
 To calculate markers for all cell clusters, you can do by following command:
@@ -47,8 +47,16 @@ get_antibody(t.markers)
 To automatically generate the sc2marker report of all cell clusters, you can run following command:
 
 ```{r}
-generate_report(mca.spleen, all.markers, fpath = ".")
+generate_report(mca.spleen, all.markers, fpath = "."， fname = "mca.spleen")
 ```
+
+Or you can only analysis subset of cell clusters (B cell and NK cell) and generate the report as following:
+
+```{r}
+all.markers <- Detect_single_marker_all(mca.spleen, category = "Flow", clusters_to_detect = c("Marginal zone B cell(Spleen)", "NK cell(Spleen)"))
+generate_report(mca.spleen, all.markers, fpath = "."， fname = "mca.spleen")
+```
+
 
 
 
