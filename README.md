@@ -13,6 +13,8 @@ require(sc2marker)
 require(Seurat)
 ```
 
+## Detect markers for one cell cluster
+
 To run sc2marker you need to execute the following command, providing a clustered single  cell data sets (as Seurat object), the cell type of interest and the antibody databased (IHC, ICC or Flow). 
 
 ```{r}
@@ -31,6 +33,8 @@ and you can generate ridge plot with the following command:
 plot_ridge(mca.spleen, id = "NK cell(Spleen)", genes = nk.markers[1:9,]$gene, ncol = 3, assay = "RNA", aggr.other = F)
 ```
 
+## calculate markers for all cell clusters
+
 To calculate markers for all cell clusters, you can do by following command:
 
 ```{r}
@@ -43,6 +47,8 @@ To Check T cell markers from results of all clusters, and get the antibody infor
 t.markers <- all.markers[["T cell(Spleen)"]]
 get_antibody(t.markers)
 ```
+
+## Generate report
 
 To automatically generate the sc2marker report of all cell clusters, you can run following command:
 
