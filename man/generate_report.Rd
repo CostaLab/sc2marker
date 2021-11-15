@@ -12,6 +12,8 @@ generate_report(
   fname = NULL,
   top_n_genes = 6,
   ridge_ncol = 3,
+  assay = "RNA",
+  slot = "data",
   ...
 )
 }

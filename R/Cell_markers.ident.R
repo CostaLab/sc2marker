@@ -2234,7 +2234,7 @@ Detect_single_marker_all <- function(scrna, step = 0.1,  slot = "data", category
 #'
 generate_report <- function(scrna, markers.list,
                             fpath = ".", aggr.other = F, fname = NULL,
-                            top_n_genes = 6, ridge_ncol = 3,
+                            top_n_genes = 6, ridge_ncol = 3, assay = "RNA", slot = "data",
                             ...){
   markers.list <- markers.list
   saveRDS(markers.list, file = file.path(fpath, "sc2marker.allmarkers.intermediate.rds"))
@@ -2243,6 +2243,8 @@ generate_report <- function(scrna, markers.list,
                       aggr.other = aggr.other,
                       top_n_genes = top_n_genes,
                       fname = fname,
+                      assay = assay,
+                      slot = slot,
                       ridge_ncol = ridge_ncol)
   if (is.null(fname)) {
     fname.rmd <- "sc2marker.report.Rmd"
@@ -2267,7 +2269,7 @@ generate_report <- function(scrna, markers.list,
 #'
 #'
 generate_report_rmd <- function(scrna, markers.list, aggr.other = F, top_n_genes = 6, ridge_ncol = 3,
-                                fname = NULL, fpath = "."){
+                                fname = NULL, fpath = ".", assay = "RNA", slot = "data"){
   if (is.null(fname)) {
     fname.rmd <- "sc2marker.report.Rmd"
   }else{
@@ -2280,6 +2282,8 @@ generate_report_rmd <- function(scrna, markers.list, aggr.other = F, top_n_genes
     chunk.template.s <- gsub("sc2marker_aggrother", aggr.other, chunk.template.s)
     chunk.template.s <- gsub("sc2marker_ncol", ridge_ncol, chunk.template.s)
     chunk.template.s <- gsub("top_n_genes", top_n_genes, chunk.template.s)
+    chunk.template.s <- gsub("sc2marker_slot", paste("\"",slot, "\"", sep = ""), chunk.template.s)
+    chunk.template.s <- gsub("sc2marker_assay", paste("\"",assay, "\"", sep = ""), chunk.template.s)
     write(chunk.template.s, file = file.path(fpath, fname.rmd), append = T)
   }
 }

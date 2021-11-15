@@ -11,7 +11,9 @@ generate_report_rmd(
   top_n_genes = 6,
   ridge_ncol = 3,
   fname = NULL,
-  fpath = "."
+  fpath = ".",
+  assay = "RNA",
+  slot = "data"
 )
 }
 \arguments{
