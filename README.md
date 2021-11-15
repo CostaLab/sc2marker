@@ -63,6 +63,9 @@ all.markers <- Detect_single_marker_all(mca.spleen, category = "Flow", clusters_
 generate_report(mca.spleen, all.markers, fpath = ".", fname = "mca.spleen")
 ```
 
+# Reproduct
+
+All code and obj needed to generate the results of sc2marker can be found [here](https://doi.org/10.5281/zenodo.5703604)
 
 
 
