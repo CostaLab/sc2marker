@@ -2199,12 +2199,13 @@ Detect_single_marker_all <- function(scrna, step = 0.1,  slot = "data", category
     cluster.out <- setdiff(clusters_to_detect, unique(scrna@active.ident))
     cat(paste("These clusters are detected\n"))
     cat(cluster.in)
+    cat(paste("\n"))
     if (length(cluster.out) > 0) {
       cat(paste("\nThese clusters are not in the obj\n"))
       cat(cluster.out)
     }
     for (id in cluster.in) {
-      message(paste("\nCalculating Markers for", id, "\n"))
+      message(paste("Calculating Markers for", id, "\n"))
       df.s <- Detect_single_marker(scrna = scrna, id = id, step = step,
                                    slot = slot, assay = assay,
                                    min.pct = min.pct, min.fc = min.fc,
