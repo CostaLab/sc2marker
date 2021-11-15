@@ -54,7 +54,7 @@ Or you can only analysis subset of cell clusters (B cell and NK cell) and genera
 
 ```{r}
 all.markers <- Detect_single_marker_all(mca.spleen, category = "Flow", clusters_to_detect = c("Marginal zone B cell(Spleen)", "NK cell(Spleen)"))
-generate_report(mca.spleen, all.markers, fpath = "."， fname = "mca.spleen")
+generate_report(mca.spleen, all.markers, fpath = ".", fname = "mca.spleen")
 ```
 
 
