@@ -2171,25 +2171,48 @@ intersect.ignorecase <- function(list1, list2){
 #' @param step quantile steps
 #' @param min.pct only test genes that are detected in a minimum fraction of cells in interested cell types. Default is 0.15
 #' @param use.all Don't do any filter on input geneset
+#' @param clusters_to_detect set of clusters for compupation
 #' @param geneset custom genes to test
 #' @return list of markers performance
 #' @export
 #'
 #'
-Detect_single_marker_all <- function(scrna, step = 0.1,  slot = "data", category = NULL,
+Detect_single_marker_all <- function(scrna, step = 0.1,  slot = "data", category = NULL, clusters_to_detect = NULL,
                                      geneset = NULL, assay = "RNA", do.fast = F, min.pct = 0.15, min.fc = 0.25,
                                      use.all = F, do.f1score = F, pseudo.count = 0.01, min.tnr = 0.65,...){
   all.list <- vector("list")
-  for (id in unique(scrna@active.ident)) {
-    message(paste("Calculating Markers for", id))
-    df.s <- Detect_single_marker(scrna = scrna, id = id, step = step,
-                                 slot = slot, assay = assay,
-                                 min.pct = min.pct, min.fc = min.fc,
-                                 min.tnr = min.tnr, pseudo.count = pseudo.count,
-                                 use.all = use.all, do.f1score = do.f1score,
-                                 category = category, geneset = geneset, do.fast = do.fast,
-                                 ...)
-    all.list[[id]] <- df.s
+  if (length(clusters_to_detect) == 0) {
+    for (id in unique(scrna@active.ident)) {
+      message(paste("Calculating Markers for", id))
+      df.s <- Detect_single_marker(scrna = scrna, id = id, step = step,
+                                   slot = slot, assay = assay,
+                                   min.pct = min.pct, min.fc = min.fc,
+                                   min.tnr = min.tnr, pseudo.count = pseudo.count,
+                                   use.all = use.all, do.f1score = do.f1score,
+                                   category = category, geneset = geneset, do.fast = do.fast,
+                                   ...)
+      all.list[[id]] <- df.s
+    }
+  }else{
+    cluster.in <- intersect(clusters_to_detect, unique(scrna@active.ident))
+    cluster.out <- setdiff(clusters_to_detect, unique(scrna@active.ident))
+    cat(paste("These clusters are detected\n"))
+    cat(cluster.in)
+    if (length(cluster.out) > 0) {
+      cat(paste("\nThese clusters are not in the obj\n"))
+      cat(cluster.out)
+    }
+    for (id in cluster.in) {
+      message(paste("\nCalculating Markers for", id, "\n"))
+      df.s <- Detect_single_marker(scrna = scrna, id = id, step = step,
+                                   slot = slot, assay = assay,
+                                   min.pct = min.pct, min.fc = min.fc,
+                                   min.tnr = min.tnr, pseudo.count = pseudo.count,
+                                   use.all = use.all, do.f1score = do.f1score,
+                                   category = category, geneset = geneset, do.fast = do.fast,
+                                   ...)
+      all.list[[id]] <- df.s
+    }
   }
   return(all.list)
 }
@@ -2210,21 +2233,22 @@ generate_report <- function(scrna, markers.list,
                             fpath = ".", aggr.other = F,
                             top_n_genes = 6, ridge_ncol = 3,
                             ...){
-  markers.all <- markers.list
-  saveRDS(markers.all, file = file.path(fpath, "sc2marker.allmarkers.intermediate.rds"))
+  markers.list <- markers.list
+  saveRDS(markers.list, file = file.path(fpath, "sc2marker.allmarkers.intermediate.rds"))
   saveRDS(scrna, file = file.path(fpath, "sc2marker.scrna.intermediate.rds"))
-  generate_report_rmd(scrna = scrna, fpath = fpath,
+  generate_report_rmd(scrna = scrna, markers.list = markers.list, fpath = fpath,
                       aggr.other = aggr.other,
                       top_n_genes = top_n_genes,
                       ridge_ncol = ridge_ncol)
   rmarkdown::render(file.path(fpath, "sc2marker.report.Rmd"))
-  unlink(file.path("sc2marker.allmarkers.intermediate.rds"))
-  unlink(file.path("sc2marker.scrna.intermediate.rds"))
+  unlink(file.path(fpath, "sc2marker.allmarkers.intermediate.rds"))
+  unlink(file.path(fpath, "sc2marker.scrna.intermediate.rds"))
 }
 
 
 #' generate  html report for single markers of all cell groups
 #' @param scrna seurat obj to be used
+#' @param markers.list results from Detect_single_marker_all()
 #' @param top_n_genes top number of genes for RidgePlot
 #' @param sc2marker_ncol number of col of Ridgeplot
 #' @param fname Name of repoort
@@ -2233,10 +2257,10 @@ generate_report <- function(scrna, markers.list,
 #' @export
 #'
 #'
-generate_report_rmd <- function(scrna, aggr.other = F, top_n_genes = 6, ridge_ncol = 3,
+generate_report_rmd <- function(scrna, markers.list, aggr.other = F, top_n_genes = 6, ridge_ncol = 3,
                                 fname = "sc2marker.report.Rmd", fpath = "."){
   write(setup.template, file = file.path(fpath, fname))
-  for (id in unique(scrna@active.ident)) {
+  for (id in unique(names(markers.list))) {
     chunk.template.s <- chunk.template
     chunk.template.s <- gsub("sc2marker_celltype", paste("\"",id, "\"", sep = ""), chunk.template.s)
     chunk.template.s <- gsub("sc2marker_aggrother", aggr.other, chunk.template.s)

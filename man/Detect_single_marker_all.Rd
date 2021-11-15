@@ -9,6 +9,7 @@ Detect_single_marker_all(
   step = 0.1,
   slot = "data",
   category = NULL,
+  clusters_to_detect = NULL,
   geneset = NULL,
   assay = "RNA",
   do.fast = F,
@@ -27,6 +28,8 @@ Detect_single_marker_all(
 \item{step}{quantile steps}
 
 \item{slot}{indicate the slot of data to compute}
+
+\item{clusters_to_detect}{set of clusters for compupation}
 
 \item{geneset}{custom genes to test}
 

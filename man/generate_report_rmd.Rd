@@ -6,6 +6,7 @@
 \usage{
 generate_report_rmd(
   scrna,
+  markers.list,
   aggr.other = F,
   top_n_genes = 6,
   ridge_ncol = 3,
@@ -15,6 +16,8 @@ generate_report_rmd(
 }
 \arguments{
 \item{scrna}{seurat obj to be used}
+
+\item{markers.list}{results from Detect_single_marker_all()}
 
 \item{top_n_genes}{top number of genes for RidgePlot}
 
