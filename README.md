@@ -16,19 +16,19 @@ require(Seurat)
 To run sc2marker you need to execute the following command, providing a clustered single  cell data sets (as Seurat object), the cell type of interest and the antibody databased (IHC, ICC or Flow). 
 
 ```{r}
-t.markers <- Detect_single_marker(mca.spleen, id = "T cell(Spleen)", category = "Flow")
+nk.markers <- Detect_single_marker(mca.spleen, id = "NK cell(Spleen)", category = "Flow")
 ```
 
 You can display the results as a table with the command:
 
 ```{r}
-get_antibody(t.markers)
+get_antibody(nk.markers)
 ```
 
 and you can generate ridge plot with the following command:
 
 ```{r}
-plot_ridge(mca.spleen, id = "T cell(Spleen)", genes = t.markers[1:9,]$gene, ncol = 3, assay = "RNA", aggr.other = F)
+plot_ridge(mca.spleen, id = "NK cell(Spleen)", genes = nk.markers[1:9,]$gene, ncol = 3, assay = "RNA", aggr.other = F)
 ```
 
 To calculate markers for all cell clusters, you can do by following command:
