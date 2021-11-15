@@ -53,7 +53,7 @@ get_antibody(t.markers)
 To automatically generate the sc2marker report of all cell clusters, you can run following command:
 
 ```{r}
-generate_report(mca.spleen, all.markers, fpath = "."， fname = "mca.spleen")
+generate_report(mca.spleen, all.markers, fpath = ".", fname = "mca.spleen")
 ```
 
 Or you can only analysis subset of cell clusters (B cell and NK cell) and generate the report as following:
