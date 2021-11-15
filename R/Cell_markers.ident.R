@@ -2236,21 +2236,20 @@ generate_report <- function(scrna, markers.list,
                             fpath = ".", aggr.other = F, fname = NULL,
                             top_n_genes = 6, ridge_ncol = 3,
                             ...){
-  if (is.null(fname)) {
-    fname <- "sc2marker.report.Rmd"
-    print("yes")
-  }else{
-    fname <- paste(fname, ".sc2marker.report.Rmd", sep = "")
-  }
   markers.list <- markers.list
   saveRDS(markers.list, file = file.path(fpath, "sc2marker.allmarkers.intermediate.rds"))
   saveRDS(scrna, file = file.path(fpath, "sc2marker.scrna.intermediate.rds"))
   generate_report_rmd(scrna = scrna, markers.list = markers.list, fpath = fpath,
                       aggr.other = aggr.other,
                       top_n_genes = top_n_genes,
+                      fname = fname,
                       ridge_ncol = ridge_ncol)
-  fname
-  rmarkdown::render(file.path(fpath, fname))
+  if (is.null(fname)) {
+    fname.rmd <- "sc2marker.report.Rmd"
+  }else{
+    fname.rmd <- paste(fname, ".sc2marker.report.Rmd", sep = "")
+  }
+  rmarkdown::render(file.path(fpath, fname.rmd))
   unlink(file.path(fpath, "sc2marker.allmarkers.intermediate.rds"))
   unlink(file.path(fpath, "sc2marker.scrna.intermediate.rds"))
 }
@@ -2270,18 +2269,18 @@ generate_report <- function(scrna, markers.list,
 generate_report_rmd <- function(scrna, markers.list, aggr.other = F, top_n_genes = 6, ridge_ncol = 3,
                                 fname = NULL, fpath = "."){
   if (is.null(fname)) {
-    fname <- "sc2marker.report.Rmd"
+    fname.rmd <- "sc2marker.report.Rmd"
   }else{
-    fname <- paste(fname, ".sc2marker.report.Rmd", sep = "")
+    fname.rmd <- paste(fname, ".sc2marker.report.Rmd", sep = "")
   }
-  write(setup.template, file = file.path(fpath, fname))
+  write(setup.template, file = file.path(fpath, fname.rmd))
   for (id in unique(names(markers.list))) {
     chunk.template.s <- chunk.template
     chunk.template.s <- gsub("sc2marker_celltype", paste("\"",id, "\"", sep = ""), chunk.template.s)
     chunk.template.s <- gsub("sc2marker_aggrother", aggr.other, chunk.template.s)
     chunk.template.s <- gsub("sc2marker_ncol", ridge_ncol, chunk.template.s)
     chunk.template.s <- gsub("top_n_genes", top_n_genes, chunk.template.s)
-    write(chunk.template.s, file = file.path(fpath, fname), append = T)
+    write(chunk.template.s, file = file.path(fpath, fname.rmd), append = T)
   }
 }
 
