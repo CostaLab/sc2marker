@@ -2227,14 +2227,21 @@ Detect_single_marker_all <- function(scrna, step = 0.1,  slot = "data", category
 #' @param aggr.other whether to aggregate other celltypes
 #' @param ridge_ncol
 #' @param fpath Path to generate the report
+#' @param fname file name. Default NULL
 #' @return list of markers performance
 #' @export
 #'
 #'
 generate_report <- function(scrna, markers.list,
-                            fpath = ".", aggr.other = F,
+                            fpath = ".", aggr.other = F, fname = NULL,
                             top_n_genes = 6, ridge_ncol = 3,
                             ...){
+  if (is.null(fname)) {
+    fname <- "sc2marker.report.Rmd"
+    print("yes")
+  }else{
+    fname <- paste(fname, ".sc2marker.report.Rmd", sep = "")
+  }
   markers.list <- markers.list
   saveRDS(markers.list, file = file.path(fpath, "sc2marker.allmarkers.intermediate.rds"))
   saveRDS(scrna, file = file.path(fpath, "sc2marker.scrna.intermediate.rds"))
@@ -2242,7 +2249,8 @@ generate_report <- function(scrna, markers.list,
                       aggr.other = aggr.other,
                       top_n_genes = top_n_genes,
                       ridge_ncol = ridge_ncol)
-  rmarkdown::render(file.path(fpath, "sc2marker.report.Rmd"))
+  fname
+  rmarkdown::render(file.path(fpath, fname))
   unlink(file.path(fpath, "sc2marker.allmarkers.intermediate.rds"))
   unlink(file.path(fpath, "sc2marker.scrna.intermediate.rds"))
 }
@@ -2253,14 +2261,19 @@ generate_report <- function(scrna, markers.list,
 #' @param markers.list results from Detect_single_marker_all()
 #' @param top_n_genes top number of genes for RidgePlot
 #' @param sc2marker_ncol number of col of Ridgeplot
-#' @param fname Name of repoort
+#' @param fname file name. Default NULL
 #' @param fpath Path to generate report
 #' @return list of markers performance
 #' @export
 #'
 #'
 generate_report_rmd <- function(scrna, markers.list, aggr.other = F, top_n_genes = 6, ridge_ncol = 3,
-                                fname = "sc2marker.report.Rmd", fpath = "."){
+                                fname = NULL, fpath = "."){
+  if (is.null(fname)) {
+    fname <- "sc2marker.report.Rmd"
+  }else{
+    fname <- paste(fname, ".sc2marker.report.Rmd", sep = "")
+  }
   write(setup.template, file = file.path(fpath, fname))
   for (id in unique(names(markers.list))) {
     chunk.template.s <- chunk.template

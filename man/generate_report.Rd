@@ -9,6 +9,7 @@ generate_report(
   markers.list,
   fpath = ".",
   aggr.other = F,
+  fname = NULL,
   top_n_genes = 6,
   ridge_ncol = 3,
   ...
@@ -22,6 +23,8 @@ generate_report(
 \item{fpath}{Path to generate the report}
 
 \item{aggr.other}{whether to aggregate other celltypes}
+
+\item{fname}{file name. Default NULL}
 }
 \value{
 list of markers performance

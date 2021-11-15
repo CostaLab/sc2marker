@@ -10,7 +10,7 @@ generate_report_rmd(
   aggr.other = F,
   top_n_genes = 6,
   ridge_ncol = 3,
-  fname = "sc2marker.report.Rmd",
+  fname = NULL,
   fpath = "."
 )
 }
@@ -21,7 +21,7 @@ generate_report_rmd(
 
 \item{top_n_genes}{top number of genes for RidgePlot}
 
-\item{fname}{Name of repoort}
+\item{fname}{file name. Default NULL}
 
 \item{fpath}{Path to generate report}
 
