@@ -65,7 +65,7 @@ generate_report(mca.spleen, all.markers, fpath = ".", fname = "mca.spleen")
 
 # Reproduction
 
-All code and R object needed to generate the results of sc2marker manuscript can be found [here](https://doi.org/10.5281/zenodo.5703652).
+All code and R object needed to generate the results can be found [here](https://doi.org/10.5281/zenodo.5703652).
 Also, you can find the original data of MCA, HCA and Stromal data as following:
 [MCA](https://figshare.com/articles/dataset/MCA_DGE_Data/5435866),
 [HCA](https://atlas.fredhutch.org/nygc/multimodal-pbmc/),
