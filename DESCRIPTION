@@ -15,6 +15,7 @@ RoxygenNote: 7.1.1
 Imports:
 	data.table,
 	Seurat (>= 4.0.1),
+	SeuratObject (>= 4.0.0),
 	ggplot2,
 	MLmetrics,
 	dplyr,
