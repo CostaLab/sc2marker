@@ -1449,6 +1449,7 @@ Detect_single_marker <- function(scrna, id, step = 0.1,  slot = "data", category
                                  geneset = NULL, assay = "RNA", do.fast = F, min.pct = 0.15, min.fc = 0.25,
                                  use.all = F, do.f1score = F, pseudo.count = 0.01, min.tnr = 0.65){
   genes.to.use <- NULL
+  DefaultAssay(scrna) <- assay
 
   if (!is.null(category)) {
     if (!(category %in% c("ICC.IHC", "ICC", "IHC", "Flow", "FlowComet"))) {
@@ -1645,10 +1646,10 @@ get_antibody <- function(markers.list, rm.noab = T){
   for (i in 1:nrow(markers.list)) {
     gene.i <- markers.list[i,]$gene
     if (gene.i %in% IHC$Gene) {
-      markers.list[i,]$antibody <- IHC[IHC$Gene == gene.i, ]$Antibody.RRID
+      markers.list[i,]$antibody <- IHC[IHC$Gene == gene.i, ]$Antibody.RRID[1]
     }
     if (gene.i %in% ICC$Gene) {
-      markers.list[i,]$antibody <- ICC[ICC$Gene == gene.i, ]$Antibody.RRID
+      markers.list[i,]$antibody <- ICC[ICC$Gene == gene.i, ]$Antibody.RRID[1]
     }
   }
   # markers.list$antibody <- ifelse(markers.list$antibody == "NULL",
