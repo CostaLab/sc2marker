@@ -63,7 +63,7 @@ all.markers <- Detect_single_marker_all(mca.spleen, category = "Flow", clusters_
 generate_report(mca.spleen, all.markers, fpath = ".", fname = "mca.spleen")
 ```
 
-# Reproduct
+# Reproduction
 
 All code and R object needed to generate the results of sc2marker can be found [here](https://doi.org/10.5281/zenodo.5703604).
 Also, you can find the original data of MCA, HCA and Stromal data as following:
