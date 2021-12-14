@@ -2205,7 +2205,7 @@ Detect_single_marker_all <- function(scrna, step = 0.1,  slot = "data", category
       cat(cluster.out)
     }
     for (id in cluster.in) {
-      message(paste("Calculating Markers for", id, "\n"))
+      message(paste("Calculating Markers for", id))
       df.s <- Detect_single_marker(scrna = scrna, id = id, step = step,
                                    slot = slot, assay = assay,
                                    min.pct = min.pct, min.fc = min.fc,
