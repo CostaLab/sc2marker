@@ -1481,6 +1481,7 @@ Detect_single_marker <- function(scrna, id, step = 0.1,  slot = "data", category
     if (length(geneset.out) > 0) {
       cat(paste("\nThese genes are not in the obj. Please check! \n"))
       cat(geneset.out)
+      cat(paste("\n"))
     }
   }else{
     genes.to.use <- rownames(scrna[[assay]])
