@@ -1476,7 +1476,7 @@ Detect_single_marker <- function(scrna, id, step = 0.1,  slot = "data", category
   genes.to.use <- c(genes.to.use, geneset)
   if (!is.null(genes.to.use)) {
     genes.to.use <- intersect.ignorecase(rownames(scrna[[assay]]), genes.to.use)
-    geneset.in <- intersect.ignorecase(rownames(scrna[[assay]]), geneset)
+    geneset.in <- intersect.ignorecase(geneset, rownames(scrna[[assay]]))
     geneset.out <- setdiff(geneset, geneset.in)
     if (length(geneset.out) > 0) {
       cat(paste("\nThese genes are not in the obj. Please check! \n"))
