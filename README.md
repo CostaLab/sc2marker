@@ -21,10 +21,10 @@ To run sc2marker you need to execute the following command, providing a clustere
 nk.markers <- Detect_single_marker(mca.spleen, id = "NK cell(Spleen)", category = "Flow")
 ```
 
-To use customized gene set, you can run the following command.
+To use customized gene set, you can run the following command. (Relax, cases doesn't matter)
 
 ```
-nk.markers <- Detect_single_marker(mca.spleen, id = "NK cell(Spleen)", category = "Flow", geneset = c("CD19", "GeneA", "CD190") )
+nk.markers <- Detect_single_marker(mca.spleen, id = "NK cell(Spleen)", category = "Flow", geneset = c("CD19", "GeneA", "welcome2022") )
 ```
 
 You can display the results as a table with the command:
