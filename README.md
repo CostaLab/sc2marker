@@ -21,12 +21,6 @@ To run sc2marker you need to execute the following command, providing a clustere
 nk.markers <- Detect_single_marker(mca.spleen, id = "NK cell(Spleen)", category = "Flow")
 ```
 
-To use customized gene set, you can run the following command. (Relax, sc2marker will recognise genes and ignore the cases.)
-
-```
-nk.markers <- Detect_single_marker(mca.spleen, id = "NK cell(Spleen)", category = "Flow", geneset = c("CD19", "GeneA", "welcome2022") )
-```
-
 You can display the results as a table with the command:
 
 ```{r}
@@ -38,6 +32,14 @@ and you can generate ridge plot with the following command:
 ```{r}
 plot_ridge(mca.spleen, id = "NK cell(Spleen)", genes = nk.markers[1:9,]$gene, ncol = 3, assay = "RNA", aggr.other = F)
 ```
+
+To use \textbf{customized gene set}, you can run the following command. (Relax, sc2marker will recognise genes and ignore the cases.)
+
+```
+nk.markers <- Detect_single_marker(mca.spleen, id = "NK cell(Spleen)", category = "Flow", geneset = c("CD19", "GeneA", "welcome2022") )
+get_antibody(nk.markers, rm.noab = F)
+```
+
 
 ## calculate markers for all cell clusters
 
