@@ -33,7 +33,7 @@ and you can generate ridge plot with the following command:
 plot_ridge(mca.spleen, id = "NK cell(Spleen)", genes = nk.markers[1:9,]$gene, ncol = 3, assay = "RNA", aggr.other = F)
 ```
 
-To use \textbf{customized gene set}, you can run the following command. (Relax, sc2marker will recognise genes and ignore the cases.)
+To use customized gene set, you can run the following command. (Relax, sc2marker will recognise genes and ignore the cases.)
 
 ```
 nk.markers <- Detect_single_marker(mca.spleen, id = "NK cell(Spleen)", category = "Flow", geneset = c("CD19", "GeneA", "welcome2022") )
