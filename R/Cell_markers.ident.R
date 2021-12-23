@@ -1555,137 +1555,97 @@ Detect_single_marker <- function(scrna, id, step = 0.1,  slot = "data", category
 #' @return gene score in both direction
 #'
 #'
-get_gene_score <- function(exprs.matrix, celltype, gene, step = 0.01, pseudo.count = 0.01, min.tnr = 0.65){
+get_gene_score <- function (exprs.matrix, celltype, gene, step = 0.01, pseudo.count = 0.01,
+                            min.tnr = 0.65)
+{
   colnames(exprs.matrix) <- c("exp", "id")
-  # exprs.matrix$
   exprs.matrix <- data.table::as.data.table(exprs.matrix)
   exprs.max <- max(exprs.matrix$exp)
   exprs.min <- min(exprs.matrix$exp)
   exprs.matrix$exp <- normalize(exprs.matrix$exp)
   exprs.matrix$exp <- round(exprs.matrix$exp, 3)
   exprs.matrix$exp.n <- 0 - exprs.matrix$exp
-
-  gene.prauc.p <- data.frame(x.val <- c(),
-                             margin <- c())
-  gene.prauc.n <- data.frame(x.val <- c(),
-                             margin <- c())
+  gene.prauc.p <- data.frame(x.val <- c(), margin <- c())
+  gene.prauc.n <- data.frame(x.val <- c(), margin <- c())
   celltype.in <- celltype
-
   data.id <- subset(exprs.matrix, id == celltype.in)
   data.other <- subset(exprs.matrix, id != celltype.in)
   data.id.l <- nrow(data.id)
   data.o.l <- nrow(data.other)
   data.all.l <- nrow(exprs.matrix)
-
-  x.factor.p <- (mean(data.id$exp) + pseudo.count)/(mean(data.other$exp) + pseudo.count)
-  x.factor.p.l <- log(x.factor.p)
-
   for (x.val in seq(0.001, 0.99, step)) {
-
-    if (x.factor.p.l > -0.8) {
-      data.i.a <- subset(data.id, exp > x.val)
-      data.o.a <- subset(data.other, exp > x.val)
-      data.i.b <- subset(data.id, exp <= x.val)
-      data.o.b <- subset(data.other, exp <= x.val)
-      x.margin.p <- sum((data.i.a$exp - x.val))*nrow(data.o.b) +
-        sum((x.val - data.o.b$exp))*nrow(data.i.a) -
-        sum((data.o.a$exp - x.val))*nrow(data.i.b)
-      x.margin.p <- x.margin.p/data.all.l
-      de.p <- data.frame(x.val, x.margin.p)
-      gene.prauc.p <- rbind(gene.prauc.p, de.p)
-    }
-    # data.i.a <- subset(data.id, exp > x.val)
-    # data.o.a <- subset(data.other, exp > x.val)
-    # data.i.b <- subset(data.id, exp <= x.val)
-    # data.o.b <- subset(data.other, exp <= x.val)
-    # x.margin.p <- sum((data.i.a$exp - x.val))*nrow(data.o.b) +
-    #   sum((x.val - data.o.b$exp))*nrow(data.i.a) -
-    #   sum((data.o.a$exp - x.val))*nrow(data.i.b)
-    # x.margin.p <- x.margin.p/data.all.l
-    # de.p <- data.frame(x.val, x.margin.p)
-    # gene.prauc.p <- rbind(gene.prauc.p, de.p)
-
-    if (x.factor.p.l < 0.8) {
-      x.val.n <- 0 - x.val
-      data.i.a <- subset(data.id, exp.n > x.val.n)
-      data.o.a <- subset(data.other, exp.n > x.val.n)
-      data.i.b <- subset(data.id, exp.n <= x.val.n)
-      data.o.b <- subset(data.other, exp.n <= x.val.n)
-
-      x.margin.n <- sum((data.i.a$exp.n - x.val.n))*nrow(data.o.b) +
-        sum((x.val.n -data.o.b$exp.n))*nrow(data.i.a) -
-        sum((data.o.a$exp.n - x.val.n))*nrow(data.i.b)
-      x.margin.n <- x.margin.n/data.all.l
-
-      de.n <- data.frame(x.val, x.margin.n)
-      gene.prauc.n <- rbind(gene.prauc.n, de.n)
-    }
-    # x.val.n <- 0 - x.val
-    # data.i.a <- subset(data.id, exp.n > x.val.n)
-    # data.o.a <- subset(data.other, exp.n > x.val.n)
-    # data.i.b <- subset(data.id, exp.n <= x.val.n)
-    # data.o.b <- subset(data.other, exp.n <= x.val.n)
-    #
-    # x.margin.n <- sum((data.i.a$exp.n - x.val.n))*nrow(data.o.b) +
-    #   sum((x.val.n -data.o.b$exp.n))*nrow(data.i.a) -
-    #   sum((data.o.a$exp.n - x.val.n))*nrow(data.i.b)
-    # x.margin.n <- x.margin.n/data.all.l
-    #
-    # de.n <- data.frame(x.val, x.margin.n)
-    # gene.prauc.n <- rbind(gene.prauc.n, de.n)
+    data.i.a <- subset(data.id, exp > x.val)
+    data.o.a <- subset(data.other, exp > x.val)
+    data.i.b <- subset(data.id, exp <= x.val)
+    data.o.b <- subset(data.other, exp <= x.val)
+    x.margin.p <- sum((data.i.a$exp - x.val)) * nrow(data.o.b) +
+      sum((x.val - data.o.b$exp)) * nrow(data.i.a) - sum((data.o.a$exp -
+                                                            x.val)) * nrow(data.i.b)
+    x.margin.p <- x.margin.p/data.all.l
+    de.p <- data.frame(x.val, x.margin.p)
+    gene.prauc.p <- rbind(gene.prauc.p, de.p)
+    x.val.n <- 0 - x.val
+    data.i.a <- subset(data.id, exp.n > x.val.n)
+    data.o.a <- subset(data.other, exp.n > x.val.n)
+    data.i.b <- subset(data.id, exp.n <= x.val.n)
+    data.o.b <- subset(data.other, exp.n <= x.val.n)
+    x.margin.n <- sum((data.i.a$exp.n - x.val.n)) * nrow(data.o.b) +
+      sum((x.val.n - data.o.b$exp.n)) * nrow(data.i.a) -
+      sum((data.o.a$exp.n - x.val.n)) * nrow(data.i.b)
+    x.margin.n <- x.margin.n/data.all.l
+    de.n <- data.frame(x.val, x.margin.n)
+    gene.prauc.n <- rbind(gene.prauc.n, de.n)
   }
-
-  gene.prauc.p <- gene.prauc.p[order(gene.prauc.p$x.margin, decreasing = T),]
-  gene.prauc.n <- gene.prauc.n[order(gene.prauc.n$x.margin, decreasing = T),]
-
-  # pos
-  x.split <- gene.prauc.p[1,]
-  x.val <- x.split[,1]
-  x.margin <- x.split[,2]
+  gene.prauc.p <- gene.prauc.p[order(gene.prauc.p$x.margin,
+                                     decreasing = T), ]
+  gene.prauc.n <- gene.prauc.n[order(gene.prauc.n$x.margin,
+                                     decreasing = T), ]
+  x.split <- gene.prauc.p[1, ]
+  x.val <- x.split[, 1]
+  x.margin <- x.split[, 2]
   tp <- sum(data.id$exp > x.val)
   fp <- sum(data.other$exp > x.val)
   fn <- sum(data.id$exp <= x.val)
   tn <- sum(data.other$exp <= x.val)
-
   fp.pro <- subset(data.other, exp > x.val)
   fp.pro <- as.data.frame(table(fp.pro$id))
-  fp.pro <- fp.pro[order(fp.pro$Freq, decreasing = T),]
+  fp.pro <- fp.pro[order(fp.pro$Freq, decreasing = T), ]
   if (nrow(fp.pro) >= 5) {
-    fp.pro <- fp.pro[1:5,]
+    fp.pro <- fp.pro[1:5, ]
   }
   fp.string <- paste(fp.pro$Var1, fp.pro$Freq)
   fp.string <- toString(fp.string)
-
-  # x.factor.p <- (mean(data.id$exp) + pseudo.count)/(mean(data.other$exp) + pseudo.count)
-  # x.factor.p <- (mean(data.id$exp) + pseudo.count)/(mean(data.other$exp) + pseudo.count)
-  x.margin.adj <- x.margin*(tp/data.id.l)*(tn/data.o.l)*(x.factor.p**2)
-  x.val <- x.val*exprs.max + exprs.min
-  x.split.p <- data.frame(gene, x.val, x.margin, x.margin.adj, tp, fp, tn, fn, "+", fp.string)
-
-  x.split <- gene.prauc.n[1,]
-  x.val <- x.split[,1]
-  x.margin <- x.split[,2]
+  x.factor.p <- (mean(data.id$exp) + pseudo.count)/(mean(data.other$exp) +
+                                                      pseudo.count)
+  x.margin.adj <- x.margin * (tp/data.id.l) * (tn/data.o.l) *
+    (x.factor.p^2)
+  x.val <- x.val * exprs.max + exprs.min
+  x.split.p <- data.frame(gene, x.val, x.margin, x.margin.adj,
+                          tp, fp, tn, fn, "+", fp.string)
+  x.split <- gene.prauc.n[1, ]
+  x.val <- x.split[, 1]
+  x.margin <- x.split[, 2]
   tp <- sum(data.id$exp < x.val)
   fp <- sum(data.other$exp < x.val)
   tn <- sum(data.other$exp >= x.val)
   fn <- sum(data.id$exp >= x.val)
-
   fp.pro <- subset(data.other, exp < x.val)
   fp.pro <- as.data.frame(table(fp.pro$id))
-  fp.pro <- fp.pro[order(fp.pro$Freq, decreasing = T),]
+  fp.pro <- fp.pro[order(fp.pro$Freq, decreasing = T), ]
   if (nrow(fp.pro) >= 5) {
-    fp.pro <- fp.pro[1:5,]
+    fp.pro <- fp.pro[1:5, ]
   }
   fp.string <- paste(fp.pro$Var1, fp.pro$Freq)
   fp.string <- toString(fp.string)
-
   x.factor.n <- round(1/x.factor.p, 1)
-  x.margin.adj <- x.margin*(tp/data.id.l)*(tn/data.o.l)*(x.factor.n**2)
-  x.val <- x.val*exprs.max + exprs.min
+  x.margin.adj <- x.margin * (tp/data.id.l) * (tn/data.o.l) *
+    (x.factor.n^2)
+  x.val <- x.val * exprs.max + exprs.min
   if (tn/data.o.l < min.tnr) {
     x.margin.adj <- 0
   }
-  x.split.n <- data.frame(gene, x.val, x.margin, x.margin.adj, tp, fp, tn, fn, "-", fp.string)
+  x.split.n <- data.frame(gene, x.val, x.margin, x.margin.adj,
+                          tp, fp, tn, fn, "-", fp.string)
   return(rbind(x.split.p, x.split.n))
 }
 
