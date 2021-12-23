@@ -1447,29 +1447,54 @@ normalize <- function(x, ...) {
 #'
 Detect_single_marker <- function(scrna, id, step = 0.1,  slot = "data", category = NULL,
                                  geneset = NULL, assay = "RNA", do.fast = F, min.pct = 0.15, min.fc = 0.25,
-                                 use.all = F, do.f1score = F, pseudo.count = 0.01, min.tnr = 0.65){
+                                 use.all = F, do.f1score = F, pseudo.count = 0.01, min.tnr = 0.65, org = "human"){
   genes.to.use <- NULL
   SeuratObject::DefaultAssay(scrna) <- assay
 
-  if (!is.null(category)) {
-    if (!(category %in% c("ICC.IHC", "ICC", "IHC", "Flow", "FlowComet"))) {
-      print("category not found, it should be one of ICC, IHC, ICC.IHC, FlowComet or Flow.")
-      return(NULL)
+  if (org == "human") {
+    if (!is.null(category)) {
+      if (!(category %in% c("ICC.IHC", "ICC", "IHC", "Flow", "FlowComet"))) {
+        print("category not found, it should be one of ICC, IHC, ICC.IHC, FlowComet or Flow.")
+        return(NULL)
+      }
+      if (category == "ICC.IHC") {
+        genes.to.use <- unique(union(ICC$Gene, IHC$Gene))
+      }else if(category == "ICC"){
+        genes.to.use <- ICC$Gene
+      }else if(category == "IHC"){
+        genes.to.use <- IHC$Gene
+      }else if(category == "Flow"){
+        genes.to.use <- surface.genes
+      }
     }
-    if (category == "ICC.IHC") {
-      genes.to.use <- unique(union(ICC$Gene, IHC$Gene))
-    }else if(category == "ICC"){
-      genes.to.use <- ICC$Gene
-    }else if(category == "IHC"){
-      genes.to.use <- IHC$Gene
-    }else if(category == "Flow"){
-      genes.to.use <- surface.genes
+
+    if (!is.null(category)){
+      if(category == "FlowComet"){
+        genes.to.use <- intersect(firstup(comet_human), rownames(scrna[[assay]]))
+      }
     }
   }
+  if (org == "mouse") {
+    if (!is.null(category)) {
+      if (!(category %in% c("ICC.IHC", "ICC", "IHC", "Flow", "FlowComet"))) {
+        print("category not found, it should be one of ICC, IHC, ICC.IHC, FlowComet or Flow.")
+        return(NULL)
+      }
+      if (category == "ICC.IHC") {
+        genes.to.use <- unique(union(ICC_mouse$Gene, IHC_mouse$Gene))
+      }else if(category == "ICC"){
+        genes.to.use <- ICC_mouse$Gene
+      }else if(category == "IHC"){
+        genes.to.use <- IHC_mouse$Gene
+      }else if(category == "Flow"){
+        genes.to.use <- flow_mouse$Gene
+      }
+    }
 
-  if (!is.null(category)){
-    if(category == "FlowComet"){
-      genes.to.use <- intersect(firstup(comet_genes), rownames(scrna[[assay]]))
+    if (!is.null(category)){
+      if(category == "FlowComet"){
+        genes.to.use <- intersect(firstup(comet_genes), rownames(scrna[[assay]]))
+      }
     }
   }
 
@@ -1552,32 +1577,62 @@ get_gene_score <- function(exprs.matrix, celltype, gene, step = 0.01, pseudo.cou
   data.o.l <- nrow(data.other)
   data.all.l <- nrow(exprs.matrix)
 
+  x.factor.p <- (mean(data.id$exp) + pseudo.count)/(mean(data.other$exp) + pseudo.count)
+  x.factor.p.l <- log(x.factor.p)
+
   for (x.val in seq(0.001, 0.99, step)) {
 
-    data.i.a <- subset(data.id, exp > x.val)
-    data.o.a <- subset(data.other, exp > x.val)
-    data.i.b <- subset(data.id, exp <= x.val)
-    data.o.b <- subset(data.other, exp <= x.val)
-    x.margin.p <- sum((data.i.a$exp - x.val))*nrow(data.o.b) +
-      sum((x.val - data.o.b$exp))*nrow(data.i.a) -
-      sum((data.o.a$exp - x.val))*nrow(data.i.b)
-    x.margin.p <- x.margin.p/data.all.l
-    de.p <- data.frame(x.val, x.margin.p)
-    gene.prauc.p <- rbind(gene.prauc.p, de.p)
+    if (x.factor.p.l > -0.8) {
+      data.i.a <- subset(data.id, exp > x.val)
+      data.o.a <- subset(data.other, exp > x.val)
+      data.i.b <- subset(data.id, exp <= x.val)
+      data.o.b <- subset(data.other, exp <= x.val)
+      x.margin.p <- sum((data.i.a$exp - x.val))*nrow(data.o.b) +
+        sum((x.val - data.o.b$exp))*nrow(data.i.a) -
+        sum((data.o.a$exp - x.val))*nrow(data.i.b)
+      x.margin.p <- x.margin.p/data.all.l
+      de.p <- data.frame(x.val, x.margin.p)
+      gene.prauc.p <- rbind(gene.prauc.p, de.p)
+    }
+    # data.i.a <- subset(data.id, exp > x.val)
+    # data.o.a <- subset(data.other, exp > x.val)
+    # data.i.b <- subset(data.id, exp <= x.val)
+    # data.o.b <- subset(data.other, exp <= x.val)
+    # x.margin.p <- sum((data.i.a$exp - x.val))*nrow(data.o.b) +
+    #   sum((x.val - data.o.b$exp))*nrow(data.i.a) -
+    #   sum((data.o.a$exp - x.val))*nrow(data.i.b)
+    # x.margin.p <- x.margin.p/data.all.l
+    # de.p <- data.frame(x.val, x.margin.p)
+    # gene.prauc.p <- rbind(gene.prauc.p, de.p)
 
-    x.val.n <- 0 - x.val
-    data.i.a <- subset(data.id, exp.n > x.val.n)
-    data.o.a <- subset(data.other, exp.n > x.val.n)
-    data.i.b <- subset(data.id, exp.n <= x.val.n)
-    data.o.b <- subset(data.other, exp.n <= x.val.n)
+    if (x.factor.p.l < 0.8) {
+      x.val.n <- 0 - x.val
+      data.i.a <- subset(data.id, exp.n > x.val.n)
+      data.o.a <- subset(data.other, exp.n > x.val.n)
+      data.i.b <- subset(data.id, exp.n <= x.val.n)
+      data.o.b <- subset(data.other, exp.n <= x.val.n)
 
-    x.margin.n <- sum((data.i.a$exp.n - x.val.n))*nrow(data.o.b) +
-      sum((x.val.n -data.o.b$exp.n))*nrow(data.i.a) -
-      sum((data.o.a$exp.n - x.val.n))*nrow(data.i.b)
-    x.margin.n <- x.margin.n/data.all.l
+      x.margin.n <- sum((data.i.a$exp.n - x.val.n))*nrow(data.o.b) +
+        sum((x.val.n -data.o.b$exp.n))*nrow(data.i.a) -
+        sum((data.o.a$exp.n - x.val.n))*nrow(data.i.b)
+      x.margin.n <- x.margin.n/data.all.l
 
-    de.n <- data.frame(x.val, x.margin.n)
-    gene.prauc.n <- rbind(gene.prauc.n, de.n)
+      de.n <- data.frame(x.val, x.margin.n)
+      gene.prauc.n <- rbind(gene.prauc.n, de.n)
+    }
+    # x.val.n <- 0 - x.val
+    # data.i.a <- subset(data.id, exp.n > x.val.n)
+    # data.o.a <- subset(data.other, exp.n > x.val.n)
+    # data.i.b <- subset(data.id, exp.n <= x.val.n)
+    # data.o.b <- subset(data.other, exp.n <= x.val.n)
+    #
+    # x.margin.n <- sum((data.i.a$exp.n - x.val.n))*nrow(data.o.b) +
+    #   sum((x.val.n -data.o.b$exp.n))*nrow(data.i.a) -
+    #   sum((data.o.a$exp.n - x.val.n))*nrow(data.i.b)
+    # x.margin.n <- x.margin.n/data.all.l
+    #
+    # de.n <- data.frame(x.val, x.margin.n)
+    # gene.prauc.n <- rbind(gene.prauc.n, de.n)
   }
 
   gene.prauc.p <- gene.prauc.p[order(gene.prauc.p$x.margin, decreasing = T),]
@@ -1601,7 +1656,7 @@ get_gene_score <- function(exprs.matrix, celltype, gene, step = 0.01, pseudo.cou
   fp.string <- paste(fp.pro$Var1, fp.pro$Freq)
   fp.string <- toString(fp.string)
 
-  x.factor.p <- (mean(data.id$exp) + pseudo.count)/(mean(data.other$exp) + pseudo.count)
+  # x.factor.p <- (mean(data.id$exp) + pseudo.count)/(mean(data.other$exp) + pseudo.count)
   # x.factor.p <- (mean(data.id$exp) + pseudo.count)/(mean(data.other$exp) + pseudo.count)
   x.margin.adj <- x.margin*(tp/data.id.l)*(tn/data.o.l)*(x.factor.p**2)
   x.val <- x.val*exprs.max + exprs.min
@@ -2185,23 +2240,24 @@ intersect.ignorecase <- function(list1, list2){
 #' @export
 #'
 #'
-Detect_single_marker_all <- function(scrna, step = 0.1,  slot = "data", category = NULL, clusters_to_detect = NULL,
-                                     geneset = NULL, assay = "RNA", do.fast = F, min.pct = 0.15, min.fc = 0.25,
-                                     use.all = F, do.f1score = F, pseudo.count = 0.01, min.tnr = 0.65,...){
+Detect_single_marker_all <- function (scrna, step = 0.1, slot = "data", category = NULL,
+                                      clusters_to_detect = NULL, geneset = NULL, assay = "RNA",
+                                      do.fast = F, min.pct = 0.15, min.fc = 0.25, use.all = F,
+                                      do.f1score = F, pseudo.count = 0.01, min.tnr = 0.65, ...)
+{
   all.list <- vector("list")
   if (length(clusters_to_detect) == 0) {
     for (id in unique(scrna@active.ident)) {
       message(paste("Calculating Markers for", id))
-      df.s <- Detect_single_marker(scrna = scrna, id = id, step = step,
-                                   slot = slot, assay = assay,
-                                   min.pct = min.pct, min.fc = min.fc,
-                                   min.tnr = min.tnr, pseudo.count = pseudo.count,
-                                   use.all = use.all, do.f1score = do.f1score,
-                                   category = category, geneset = geneset, do.fast = do.fast,
-                                   ...)
+      df.s <- Detect_single_marker(scrna = scrna, id = id,
+                                   step = step, slot = slot, assay = assay, min.pct = min.pct,
+                                   min.fc = min.fc, min.tnr = min.tnr, pseudo.count = pseudo.count,
+                                   use.all = use.all, do.f1score = do.f1score, category = category,
+                                   geneset = geneset, do.fast = do.fast, ...)
       all.list[[id]] <- df.s
     }
-  }else{
+  }
+  else {
     cluster.in <- intersect(clusters_to_detect, unique(scrna@active.ident))
     cluster.out <- setdiff(clusters_to_detect, unique(scrna@active.ident))
     cat(paste("These clusters are detected\n"))
@@ -2213,13 +2269,11 @@ Detect_single_marker_all <- function(scrna, step = 0.1,  slot = "data", category
     }
     for (id in cluster.in) {
       message(paste("Calculating Markers for", id))
-      df.s <- Detect_single_marker(scrna = scrna, id = id, step = step,
-                                   slot = slot, assay = assay,
-                                   min.pct = min.pct, min.fc = min.fc,
-                                   min.tnr = min.tnr, pseudo.count = pseudo.count,
-                                   use.all = use.all, do.f1score = do.f1score,
-                                   category = category, geneset = geneset, do.fast = do.fast,
-                                   ...)
+      df.s <- Detect_single_marker(scrna = scrna, id = id,
+                                   step = step, slot = slot, assay = assay, min.pct = min.pct,
+                                   min.fc = min.fc, min.tnr = min.tnr, pseudo.count = pseudo.count,
+                                   use.all = use.all, do.f1score = do.f1score, category = category,
+                                   geneset = geneset, do.fast = do.fast, ...)
       all.list[[id]] <- df.s
     }
   }
