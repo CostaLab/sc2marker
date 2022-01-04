@@ -18,13 +18,13 @@ require(Seurat)
 To run sc2marker you need to execute the following command, providing a clustered single  cell data sets (as Seurat object), the cell type of interest and the antibody databased (IHC, ICC or Flow). 
 
 ```{r}
-nk.markers <- Detect_single_marker(mca.spleen, id = "NK cell(Spleen)", category = "Flow")
+nk.markers <- Detect_single_marker(mca.spleen, id = "NK cell(Spleen)", category = "Flow", org = "mouse")
 ```
 
 You can display the results as a table with the command:
 
 ```{r}
-get_antibody(nk.markers)
+get_antibody(nk.markers, org = "mouse")
 ```
 
 and you can generate ridge plot with the following command:
@@ -36,7 +36,7 @@ plot_ridge(mca.spleen, id = "NK cell(Spleen)", genes = nk.markers[1:9,]$gene, nc
 To use customized gene set, you can run the following command. (Relax, sc2marker will recognise genes and ignore the cases.)
 
 ```
-nk.markers <- Detect_single_marker(mca.spleen, id = "NK cell(Spleen)", category = "Flow", geneset = c("CD19", "GeneA", "welcome2022") )
+nk.markers <- Detect_single_marker(mca.spleen, id = "NK cell(Spleen)", category = "Flow", geneset = c("CD19", "GeneA", "welcome2022"), org = "mouse")
 get_antibody(nk.markers, rm.noab = F)
 ```
 
@@ -46,14 +46,14 @@ get_antibody(nk.markers, rm.noab = F)
 To calculate markers for all cell clusters, you can do by following command:
 
 ```{r}
-all.markers <- Detect_single_marker_all(mca.spleen, category = "Flow")
+all.markers <- Detect_single_marker_all(mca.spleen, category = "Flow", org = "mouse")
 ```
 
 To Check T cell markers from results of all clusters, and get the antibody information, you can do following.
 
 ```{r}
 t.markers <- all.markers[["T cell(Spleen)"]]
-get_antibody(t.markers)
+get_antibody(t.markers, org = "mouse")
 ```
 
 ## Generate report
@@ -67,7 +67,7 @@ generate_report(mca.spleen, all.markers, fpath = ".", fname = "mca.spleen")
 Or you can only analysis subset of cell clusters (B cell and NK cell) and generate the report as following:
 
 ```{r}
-all.markers <- Detect_single_marker_all(mca.spleen, category = "Flow", clusters_to_detect = c("Marginal zone B cell(Spleen)", "NK cell(Spleen)"))
+all.markers <- Detect_single_marker_all(mca.spleen, category = "Flow", clusters_to_detect = c("Marginal zone B cell(Spleen)", "NK cell(Spleen)"), org = "mouse")
 generate_report(mca.spleen, all.markers, fpath = ".", fname = "mca.spleen")
 ```
 
