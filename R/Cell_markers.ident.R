@@ -1428,7 +1428,7 @@ normalize <- function(x, ...) {
 #' @param scrna seurat obj to be used
 #' @param geneset custom genes to test, all genes in obj to use if NULL
 #' @param id interested cell group
-#' @param test.use Denotes which test to use. Available options are:
+#' @param category Denotes which experiment to use. Available options are:
 #' \itemize{
 #'  \item{"IHC"} : use genes with valid antibody for IHC in human protein atlas
 #'  \item{"ICC"} : use genes with valid antibody for ICC in human protein atlas
@@ -1441,13 +1441,16 @@ normalize <- function(x, ...) {
 #' @param min.pct only test genes that are detected in a minimum fraction of cells in interested cell types. Default is 0.15
 #' @param use.all Don't do any filter on input geneset
 #' @param geneset custom genes to test
+#' @param self.db self defined antibody database
+#' @param self.db.only Bolean. Only use the self deifned antibody database or not
 #' @return list of markers performance
 #' @export
 #'
 #'
 Detect_single_marker <- function(scrna, id, step = 0.1,  slot = "data", category = NULL,
                                  geneset = NULL, assay = "RNA", do.fast = F, min.pct = 0.15, min.fc = 0.25,
-                                 use.all = F, do.f1score = F, pseudo.count = 0.01, min.tnr = 0.65, org = "human"){
+                                 use.all = F, do.f1score = F, pseudo.count = 0.01, min.tnr = 0.65, org = "human",
+                                 self.db = NULL, self.db.only = F,...){
   genes.to.use <- NULL
   SeuratObject::DefaultAssay(scrna) <- assay
 
@@ -1498,6 +1501,15 @@ Detect_single_marker <- function(scrna, id, step = 0.1,  slot = "data", category
     }
   }
 
+  if (!is.null(self.db)){
+    self.db.table <- utils::read.csv(self.db)
+    if(self.db.only){
+      genes.to.use <- self.db.table[,1]
+    }else{
+      genes.to.use <- c(genes.to.use, self.db.table[,1])
+    }
+  }
+
   genes.to.use <- c(genes.to.use, geneset)
   if (!is.null(genes.to.use)) {
     genes.to.use <- intersect.ignorecase(rownames(scrna[[assay]]), genes.to.use)
@@ -1509,7 +1521,10 @@ Detect_single_marker <- function(scrna, id, step = 0.1,  slot = "data", category
       cat(paste("\n"))
     }
   }else{
+    cat(paste("\n Using all genes as input. \n"))
+    cat(paste("\n"))
     genes.to.use <- rownames(scrna[[assay]])
+
   }
 
   if (use.all) {
@@ -1519,7 +1534,8 @@ Detect_single_marker <- function(scrna, id, step = 0.1,  slot = "data", category
     de <- Seurat::FoldChange(scrna, ident.1 = id, features = genes.to.use)
     de <- de[de$pct.1 > min.pct, ]
     de$avg_log2FC <- abs(de$avg_log2FC)
-    de <- de[de$avg_log2FC > min.fc, ]}
+    de <- de[de$avg_log2FC > min.fc, ]
+  }
 
   markers <- de
 
@@ -1541,6 +1557,7 @@ Detect_single_marker <- function(scrna, id, step = 0.1,  slot = "data", category
 
   gene.rank.list <- gene.rank.list[order(gene.rank.list$x.margin.adj, decreasing = T),]
   rownames(gene.rank.list) <- seq(nrow(gene.rank.list))
+  gene.rank.list <- dplyr::distinct(gene.rank.list, gene, .keep_all = TRUE)
   return(gene.rank.list)
 }
 
@@ -1656,28 +1673,53 @@ get_gene_score <- function (exprs.matrix, celltype, gene, step = 0.01, pseudo.co
 #' @return list of markers with antibody information
 #' @export
 #'
-get_antibody <- function(markers.list, rm.noab = T){
+get_antibody <- function(markers.list, rm.noab = T, org = "human",
+                         self.db = NULL, self.db.only = F,...){
   # markers.list <- markers.list[markers.list$gene %in% intersect.ignorecase(markers$gene, union(ICC$Gene, IHC$Gene)),]
   markers.list$gene <- toupper(markers.list$gene)
   markers.list$antibody <- "NULL"
+
   markers.list$x.margin <- round(markers.list$x.margin, 2)
   markers.list$x.margin.adj <- round(markers.list$x.margin.adj, 2)
-  IHC$Gene <- toupper(IHC$Gene)
-  ICC$Gene <- toupper(ICC$Gene)
 
-  for (i in 1:nrow(markers.list)) {
-    gene.i <- markers.list[i,]$gene
-    if (gene.i %in% IHC$Gene) {
-      markers.list[i,]$antibody <- IHC[IHC$Gene == gene.i, ]$Antibody.RRID[1]
-    }
-    if (gene.i %in% ICC$Gene) {
-      markers.list[i,]$antibody <- ICC[ICC$Gene == gene.i, ]$Antibody.RRID[1]
+  if (org == "human") {
+    IHC$Gene <- toupper(IHC$Gene)
+    ICC$Gene <- toupper(ICC$Gene)
+    markers.list$antibody <- "Validated"
+    for (i in 1:nrow(markers.list)) {
+      gene.i <- markers.list[i,]$gene
+      if (gene.i %in% IHC$Gene) {
+        markers.list[i,]$antibody <- IHC[IHC$Gene == gene.i, ]$Antibody.RRID[1]
+      }
+      if (gene.i %in% ICC$Gene) {
+        markers.list[i,]$antibody <- ICC[ICC$Gene == gene.i, ]$Antibody.RRID[1]
+      }
     }
   }
-  # markers.list$antibody <- ifelse(markers.list$antibody == "NULL",
-  #                                 IHC[match(markers.list$gene, IHC$Gene), ]$Antibody.RRID, markers.list$antibody)
-  # markers.list$antibody <- ifelse(markers.list$antibody == "NULL",
-  #                                 ICC[match(markers.list$gene, ICC$Gene), ]$Antibody.RRID, markers.list$antibody)
+  if (org == "mouse") {
+    IHC_mouse$Gene <- toupper(IHC_mouse$Gene)
+    ICC_mouse$Gene <- toupper(ICC_mouse$Gene)
+    markers.list$antibody <- "Homology"
+    for (i in 1:nrow(markers.list)) {
+      gene.i <- markers.list[i,]$gene
+      if (gene.i %in% IHC_mouse$Gene) {
+        markers.list[i,]$antibody <- IHC_mouse[IHC_mouse$Gene == gene.i, ]$Antibody.RRID[1]
+      }
+      if (gene.i %in% ICC_mouse$Gene) {
+        markers.list[i,]$antibody <- ICC_mouse[ICC_mouse$Gene == gene.i, ]$Antibody.RRID[1]
+      }
+    }
+  }
+
+  if (!is.null(self.db)){
+    self.db.table <- utils::read.csv(self.db)
+    self.db.table[,1] <- toupper(self.db.table[,1])
+    if(self.db.only){
+      markers.list <- markers.list[markers.list$gene %in% self.db.table[,1]]
+    }
+    markers.list[i,]$antibody <- self.db.table[self.db.table[,1] == gene.i, ]$Antibody
+  }
+
 
 
   markers.list <- markers.list[, -3]
@@ -2160,7 +2202,7 @@ get_gene_score_neg.fbeta <- function(scrna, gene, id, step = 0.01, assay = "RNA"
   tn <- sum(data.other$exp >= x.val)
 
   x.margin.adj <- x.margin
-  x.split <- data.frame(gene, x.val, x.margin, x.margin.adj, tp, fp, "+")
+  x.split <- data.frame(gene, x.val, x.margin, x.margin.adj, tp, fp, "-")
   return(x.split)
 }
 

@@ -18,7 +18,11 @@ Detect_single_marker(
   use.all = F,
   do.f1score = F,
   pseudo.count = 0.01,
-  min.tnr = 0.65
+  min.tnr = 0.65,
+  org = "human",
+  self.db = NULL,
+  self.db.only = F,
+  ...
 )
 }
 \arguments{
@@ -30,6 +34,14 @@ Detect_single_marker(
 
 \item{slot}{indicate the slot of data to compute}
 
+\item{category}{Denotes which experiment to use. Available options are:
+\itemize{
+\item{"IHC"} : use genes with valid antibody for IHC in human protein atlas
+\item{"ICC"} : use genes with valid antibody for ICC in human protein atlas
+\item{"ICC.IHC"} : use genes with valid antibody for ICC or IHC in human protein atlas
+\item{"Flow"} : Only use cell surface genes with at least one valid antibody(ICC or IHC)
+}}
+
 \item{geneset}{custom genes to test}
 
 \item{assay}{indicate the assay to compute}
@@ -38,13 +50,9 @@ Detect_single_marker(
 
 \item{use.all}{Don't do any filter on input geneset}
 
-\item{test.use}{Denotes which test to use. Available options are:
-\itemize{
-\item{"IHC"} : use genes with valid antibody for IHC in human protein atlas
-\item{"ICC"} : use genes with valid antibody for ICC in human protein atlas
-\item{"ICC.IHC"} : use genes with valid antibody for ICC or IHC in human protein atlas
-\item{"Flow"} : Only use cell surface genes with at least one valid antibody(ICC or IHC)
-}}
+\item{self.db}{self defined antibody database}
+
+\item{self.db.only}{Bolean. Only use the self deifned antibody database or not}
 }
 \value{
 list of markers performance
