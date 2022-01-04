@@ -1,0 +1,92 @@
+---
+title: "sc2marker with MCA-spleen"
+author: "sc2marker"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: yes
+    toc_depth: 3
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+suppressMessages(library(sc2marker))
+```
+
+# load data
+
+```{r SeuratObject}
+mca.spleen
+Idents(mca.spleen) <- "anno"
+ids <- c("T cell(Spleen)", "Macrophage(Spleen)", "NK cell(Spleen)", "Marginal zone B cell(Spleen)")
+mca.spleen@meta.data$annotation_simplified <- mca.spleen@meta.data$anno
+```
+
+# Simplify the cell annotation
+
+```{r}
+ids <- c("T cell(Spleen)", "Macrophage(Spleen)", "NK cell(Spleen)", "Marginal zone B cell(Spleen)")
+mca.spleen@meta.data$annotation_simplified <- ifelse(mca.spleen@meta.data$annotation_simplified %in% ids,  mca.spleen@meta.data$annotation_simplified, "Other")
+mca.spleen@meta.data$annotation_simplified[mca.spleen@meta.data$annotation_simplified == "T cell(Spleen)"] <- "T Cell"
+mca.spleen@meta.data$annotation_simplified[mca.spleen@meta.data$annotation_simplified == "Marginal zone B cell(Spleen)"] <- "B Cell"
+mca.spleen@meta.data$annotation_simplified[mca.spleen@meta.data$annotation_simplified == "NK cell(Spleen)"] <- "NK Cell"
+mca.spleen@meta.data$annotation_simplified[mca.spleen@meta.data$annotation_simplified == "Macrophage(Spleen)"] <- "Macro"
+Idents(mca.spleen) <- "annotation_simplified"
+```
+
+# Markers identification for NK cell
+
+To run sc2marker you need to execute the following command, providing a clustered single cell data sets (as Seurat object), the cell type of interest and the antibody databased (IHC, ICC or Flow).
+
+```{r NK cell markers}
+nk.markers <- Detect_single_marker(mca.spleen, id = "NK Cell", category = "Flow", org = "mouse", min.pct = 0.1)
+get_antibody(nk.markers, org = "mouse")
+```
+
+```{r message=F, warning=F, fig.height=9, fig.width=9}
+# Ridge plot of top 9 markers of NK cells
+plot_ridge(mca.spleen, id = "NK Cell", genes = nk.markers[1:9,]$gene, ncol = 3, assay = "RNA", aggr.other = F)
+```
+
+
+# Markers identification for B cell
+
+```{r B cell markers}
+b.markers <- Detect_single_marker(mca.spleen, id = "B Cell", category = "Flow", org = "mouse", min.pct = 0.1)
+get_antibody(b.markers, org = "mouse")
+```
+
+```{r message=F, warning=F, fig.height=9, fig.width=9}
+# Ridge plot of top 9 markers of B cells
+plot_ridge(mca.spleen, id = "B Cell", genes = b.markers[1:9,]$gene, ncol = 3, assay = "RNA", aggr.other = F)
+```
+
+
+
+# Markers identification for T cell
+
+```{r T cell markers}
+t.markers <- Detect_single_marker(mca.spleen, id = "T Cell", category = "Flow", org = "mouse", min.pct = 0.1)
+get_antibody(t.markers, org = "mouse")
+```
+
+```{r message=F, warning=F, fig.height=9, fig.width=9}
+# Ridge plot of top 9 markers of B cells
+plot_ridge(mca.spleen, id = "T Cell", genes = t.markers[1:9,]$gene, ncol = 3, assay = "RNA", aggr.other = F)
+```
+
+
+# Markers identification for Macrophages
+
+```{r Macro cell markers}
+Macro.markers <- Detect_single_marker(mca.spleen, id = "Macro", category = "Flow", org = "mouse", min.pct = 0.1)
+get_antibody(Macro.markers, org = "mouse")
+```
+
+```{r message=F, warning=F, fig.height=9, fig.width=9}
+# Ridge plot of top 9 markers of B cells
+plot_ridge(mca.spleen, id = "Macro", genes = Macro.markers[1:9,]$gene, ncol = 3, assay = "RNA", aggr.other = F)
+```

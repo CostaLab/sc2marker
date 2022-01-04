@@ -1485,15 +1485,18 @@ Detect_single_marker <- function(scrna, id, step = 0.1,  slot = "data", category
       }
       if (category == "ICC.IHC") {
         genes.to.use <- unique(union(ICC_mouse$Gene, IHC_mouse$Gene))
+        genes.to.use <- c(genes.to.use, flow_mouse$Gene)
       }else if(category == "ICC"){
         genes.to.use <- ICC_mouse$Gene
+        genes.to.use <- c(genes.to.use, flow_mouse$Gene)
       }else if(category == "IHC"){
         genes.to.use <- IHC_mouse$Gene
+        genes.to.use <- c(genes.to.use, flow_mouse$Gene)
       }else if(category == "Flow"){
         genes.to.use <- flow_mouse$Gene
       }
     }
-
+    genes.to.use <- unique(genes.to.use)
     if (!is.null(category)){
       if(category == "FlowComet"){
         genes.to.use <- intersect(firstup(comet_genes), rownames(scrna[[assay]]))
@@ -1670,17 +1673,20 @@ get_gene_score <- function (exprs.matrix, celltype, gene, step = 0.01, pseudo.co
 #' Get Antibody information table
 #' @param markers.list makers list from Detect single markers function
 #' @param rm.noab whether to remove genes without antibody information. Default TRUE.
+#' @param self.db User provided database
+#' @param self.db.only Bolean, whether to only use the user provided database
 #' @return list of markers with antibody information
 #' @export
 #'
 get_antibody <- function(markers.list, rm.noab = T, org = "human",
-                         self.db = NULL, self.db.only = F,...){
+                         self.db = NULL, self.db.only = F, return_matrix = F,...){
   # markers.list <- markers.list[markers.list$gene %in% intersect.ignorecase(markers$gene, union(ICC$Gene, IHC$Gene)),]
   markers.list$gene <- toupper(markers.list$gene)
   markers.list$antibody <- "NULL"
 
   markers.list$x.margin <- round(markers.list$x.margin, 2)
   markers.list$x.margin.adj <- round(markers.list$x.margin.adj, 2)
+  flow_mouse$Gene <- toupper(flow_mouse$Gene)
 
   if (org == "human") {
     IHC$Gene <- toupper(IHC$Gene)
@@ -1699,14 +1705,20 @@ get_antibody <- function(markers.list, rm.noab = T, org = "human",
   if (org == "mouse") {
     IHC_mouse$Gene <- toupper(IHC_mouse$Gene)
     ICC_mouse$Gene <- toupper(ICC_mouse$Gene)
-    markers.list$antibody <- "Homology"
+    markers.list$Reliability <- "Homology"
     for (i in 1:nrow(markers.list)) {
       gene.i <- markers.list[i,]$gene
       if (gene.i %in% IHC_mouse$Gene) {
         markers.list[i,]$antibody <- IHC_mouse[IHC_mouse$Gene == gene.i, ]$Antibody.RRID[1]
+        markers.list[i,]$Reliability <- IHC_mouse[IHC_mouse$Gene == gene.i, ]$Reliability[1]
       }
       if (gene.i %in% ICC_mouse$Gene) {
         markers.list[i,]$antibody <- ICC_mouse[ICC_mouse$Gene == gene.i, ]$Antibody.RRID[1]
+        markers.list[i,]$Reliability <- ICC_mouse[ICC_mouse$Gene == gene.i, ]$Reliability[1]
+      }
+      if (gene.i %in% toupper(flow_mouse$Gene)) {
+        markers.list[i,]$antibody <- flow_mouse[flow_mouse$Gene == gene.i, ]$Antibody.RRID[1]
+        markers.list[i,]$Reliability <- flow_mouse[flow_mouse$Gene == gene.i, ]$Reliability_1[1]
       }
     }
   }
@@ -1718,6 +1730,7 @@ get_antibody <- function(markers.list, rm.noab = T, org = "human",
       markers.list <- markers.list[markers.list$gene %in% self.db.table[,1]]
     }
     markers.list[i,]$antibody <- self.db.table[self.db.table[,1] == gene.i, ]$Antibody
+    markers.list[i,]$Reliability <- self.db.table[self.db.table[,1] == gene.i, ]$Antibody
   }
 
 
@@ -1734,15 +1747,19 @@ get_antibody <- function(markers.list, rm.noab = T, org = "human",
   }
 
   rownames(markers.list) <- 1:nrow(markers.list)
-  DT::datatable(markers.list,
-                extensions = 'Buttons',
-                options = list(dom = 'Bfrtip',
-                               buttons = c('copy',
-                                           'csv',
-                                           'excel',
-                                           'pdf', 'print'),
-                               autoWidth = FALSE),
-                escape = F)
+  if (return_matrix) {
+    return(markers.list)
+  }else{
+    DT::datatable(markers.list,
+                  extensions = 'Buttons',
+                  options = list(dom = 'Bfrtip',
+                                 buttons = c('copy',
+                                             'csv',
+                                             'excel'
+                                             ),
+                                 autoWidth = FALSE),
+                  escape = F)
+  }
 }
 
 
@@ -2006,7 +2023,6 @@ plot_ridge <- function(scrna, id, genes, ncol = 1, step = 0.01, show_split = T, 
       df.c <-Seurat::FetchData(scrna, vars = c(gene, "ident"))
       df.c$ident <- ifelse(df.c$ident == id, id, "Other")
       df.c$gene <- paste(gene)
-      # rownames(df.c) <- NULL
       colnames(df.c) <- c("Exprs", "Ident", "Gene")
       df.all <- rbind(df.all,df.c)
       df.g <- df.g[,c(1,2)]
@@ -2021,10 +2037,7 @@ plot_ridge <- function(scrna, id, genes, ncol = 1, step = 0.01, show_split = T, 
 
     g <- ggplot2::ggplot(df.s, aes(x=value, y=variable, color=Ident, point_color=Ident, fill=Ident)) +
       ggridges::geom_density_ridges_gradient(scale = 3, size = 0.3, rel_min_height = 0.01) +
-      # scale_y_discrete(expand = c(.01, 0)) +
-      # scale_x_continuous(expand = c(0, 0), name = "Expression") +
       scale_fill_manual(values = c("#CB181D80", "#2171B580")) +
-      # scale_color_manual(values = c("#CB181D80", "#2171B580"), guide = "none") +
       scale_discrete_manual("point_color", values = c("#CB181D80", "#2171B580"), guide = "none") +
       guides(fill = guide_legend(
         override.aes = list(
@@ -2040,7 +2053,7 @@ plot_ridge <- function(scrna, id, genes, ncol = 1, step = 0.01, show_split = T, 
     df.split$Gene <- factor(df.split$Gene, levels = c(genes))
     g <- g + facet_wrap(~Gene, ncol = ncol) +
       geom_vline(data = df.split, aes(xintercept = Split), linetype="dotted",
-                 color = "red", size=1.5)
+                 color = "red", size=1.5) + labs(fill = "Expression")
     # return()
   }else{
     for (gene in genes) {
@@ -2052,7 +2065,6 @@ plot_ridge <- function(scrna, id, genes, ncol = 1, step = 0.01, show_split = T, 
       }
       df.c <-Seurat::FetchData(scrna, vars = c(gene, "ident"))
       df.c$gene <- paste(gene)
-      # rownames(df.c) <- NULL
       colnames(df.c) <- c("Exprs", "Ident", "Gene")
       df.all <- rbind(df.all,df.c)
       df.g <- df.g[,c(1,2)]
@@ -2077,7 +2089,7 @@ plot_ridge <- function(scrna, id, genes, ncol = 1, step = 0.01, show_split = T, 
   }
   g <- g + theme_bw() +
     theme(panel.border = element_blank(), panel.grid.major = element_blank(),
-          panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+          panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) + labs(fill = "Expression")
   print(g)
   # return(g)
 }

@@ -4,12 +4,23 @@
 \alias{get_antibody}
 \title{Get Antibody information table}
 \usage{
-get_antibody(markers.list, rm.noab = T)
+get_antibody(
+  markers.list,
+  rm.noab = T,
+  org = "human",
+  self.db = NULL,
+  self.db.only = F,
+  ...
+)
 }
 \arguments{
 \item{markers.list}{makers list from Detect single markers function}
 
 \item{rm.noab}{whether to remove genes without antibody information. Default TRUE.}
+
+\item{self.db}{User provided database}
+
+\item{self.db.only}{Bolean, whether to only use the user provided database}
 }
 \value{
 list of markers with antibody information
