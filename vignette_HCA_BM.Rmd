@@ -1,0 +1,102 @@
+---
+title: "sc2marker with HCA-BM (Human)"
+author: "sc2marker"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: yes
+    toc_depth: 3
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+suppressMessages(library(sc2marker))
+```
+
+# load data
+
+You can load the HCA-BM object by SeuratData
+
+```{r SeuratObject, warning=F,message=F}
+suppressMessages(library(SeuratData))
+suppressMessages(library(Seurat))
+#load reference data
+InstallData("bmcite")
+bmc <- LoadData(ds = "bmcite")
+Idents(bmc) <- "celltype.l1"
+table(bmc@active.ident)
+```
+
+# Markers for NK cell
+
+To run sc2marker you need to execute the following command, providing a clustered single cell data sets (as Seurat object), the cell type of interest and the antibody databased (IHC, ICC or Flow).
+
+```{r NK cell markers}
+nk.markers <- Detect_single_marker(bmc, id = "NK", category = "Flow", org = "human", min.pct = 0.1)
+get_antibody(nk.markers, org = "human")
+```
+
+```{r message=F, warning=F, fig.height=9, fig.width=9}
+# Ridge plot of top 9 markers of NK cells
+plot_ridge(bmc, id = "NK", genes = nk.markers[1:9,]$gene, ncol = 3, assay = "RNA", aggr.other = F)
+```
+
+
+# Markers for B cell
+
+```{r B cell markers}
+b.markers <- Detect_single_marker(bmc, id = "B cell", category = "Flow", org = "human", min.pct = 0.1)
+get_antibody(b.markers, org = "human")
+```
+
+```{r message=F, warning=F, fig.height=9, fig.width=9}
+# Ridge plot of top 9 markers of B cells
+plot_ridge(bmc, id = "B cell", genes = b.markers[1:9,]$gene, ncol = 3, assay = "RNA", aggr.other = F)
+```
+
+
+
+# Markers for T cell
+
+```{r T cell markers}
+t.markers <- Detect_single_marker(bmc, id = "T cell", category = "Flow", org = "human", min.pct = 0.1)
+get_antibody(t.markers, org = "human")
+```
+
+```{r message=F, warning=F, fig.height=9, fig.width=9}
+# Ridge plot of top 9 markers of B cells
+plot_ridge(bmc, id = "T cell", genes = t.markers[1:9,]$gene, ncol = 3, assay = "RNA", aggr.other = F)
+```
+
+
+# Markers for Progenitor cells
+
+```{r Progenitor cell markers}
+Prog.markers <- Detect_single_marker(bmc, id = "Progenitor cells", category = "Flow", org = "human", min.pct = 0.1)
+get_antibody(Prog.markers, org = "human")
+```
+
+```{r message=F, warning=F, fig.height=9, fig.width=9}
+# Ridge plot of top 9 markers of B cells
+plot_ridge(bmc, id = "Progenitor cells", genes = Prog.markers[1:9,]$gene, ncol = 3, assay = "RNA", aggr.other = F)
+```
+
+# Markers for Mono/DC
+
+```{r Mono/DC cell markers}
+Mono.markers <- Detect_single_marker(bmc, id = "Mono/DC", category = "Flow", org = "human", min.pct = 0.1)
+get_antibody(Mono.markers, org = "human")
+```
+
+```{r message=F, warning=F, fig.height=9, fig.width=9}
+# Ridge plot of top 9 markers of B cells
+plot_ridge(bmc, id = "Mono/DC", genes = Mono.markers[1:9,]$gene, ncol = 3, assay = "RNA", aggr.other = F)
+```
+
+
+
+
+

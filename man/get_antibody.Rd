@@ -10,6 +10,7 @@ get_antibody(
   org = "human",
   self.db = NULL,
   self.db.only = F,
+  return_matrix = F,
   ...
 )
 }

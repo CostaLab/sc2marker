@@ -1691,7 +1691,7 @@ get_antibody <- function(markers.list, rm.noab = T, org = "human",
   if (org == "human") {
     IHC$Gene <- toupper(IHC$Gene)
     ICC$Gene <- toupper(ICC$Gene)
-    markers.list$antibody <- "Validated"
+    markers.list$Reliability <- "Validated"
     for (i in 1:nrow(markers.list)) {
       gene.i <- markers.list[i,]$gene
       if (gene.i %in% IHC$Gene) {
@@ -1734,7 +1734,6 @@ get_antibody <- function(markers.list, rm.noab = T, org = "human",
   }
 
 
-
   markers.list <- markers.list[, -3]
   markers.list[,2] <- round(markers.list[,2], 3)
   colnames(markers.list)[2] <- "Alpha"
@@ -1743,7 +1742,7 @@ get_antibody <- function(markers.list, rm.noab = T, org = "human",
 
   # markers.list <- markers.list[!is.null(markers.list$antibody), ]
   if (rm.noab) {
-    markers.list <- markers.list[!is.na(markers.list$antibody),]
+    markers.list <- markers.list[markers.list$antibody != "NULL",]
   }
 
   rownames(markers.list) <- 1:nrow(markers.list)
