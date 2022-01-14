@@ -2249,6 +2249,9 @@ intersect.ignorecase <- function(list1, list2){
 #' @param use.all Don't do any filter on input geneset
 #' @param clusters_to_detect set of clusters for compupation
 #' @param geneset custom genes to test
+#' @param org Choose database for human or mouse
+#' @param self.db self defined antibody database
+#' @param self.db.only Bolean. Only use the self deifned antibody database or not
 #' @return list of markers performance
 #' @export
 #'
@@ -2256,7 +2259,8 @@ intersect.ignorecase <- function(list1, list2){
 Detect_single_marker_all <- function (scrna, step = 0.1, slot = "data", category = NULL,
                                       clusters_to_detect = NULL, geneset = NULL, assay = "RNA",
                                       do.fast = F, min.pct = 0.15, min.fc = 0.25, use.all = F,
-                                      do.f1score = F, pseudo.count = 0.01, min.tnr = 0.65, ...)
+                                      do.f1score = F, pseudo.count = 0.01, min.tnr = 0.65, org="mouse",
+                                      self.db = NULL, self.db.only=F, ...)
 {
   all.list <- vector("list")
   if (length(clusters_to_detect) == 0) {
@@ -2266,7 +2270,8 @@ Detect_single_marker_all <- function (scrna, step = 0.1, slot = "data", category
                                    step = step, slot = slot, assay = assay, min.pct = min.pct,
                                    min.fc = min.fc, min.tnr = min.tnr, pseudo.count = pseudo.count,
                                    use.all = use.all, do.f1score = do.f1score, category = category,
-                                   geneset = geneset, do.fast = do.fast, ...)
+                                   geneset = geneset, do.fast = do.fast, org = org, self.db = self.db,
+                                   self.db.only = self.db.only, ...)
       all.list[[id]] <- df.s
     }
   }
@@ -2286,7 +2291,8 @@ Detect_single_marker_all <- function (scrna, step = 0.1, slot = "data", category
                                    step = step, slot = slot, assay = assay, min.pct = min.pct,
                                    min.fc = min.fc, min.tnr = min.tnr, pseudo.count = pseudo.count,
                                    use.all = use.all, do.f1score = do.f1score, category = category,
-                                   geneset = geneset, do.fast = do.fast, ...)
+                                   geneset = geneset, do.fast = do.fast, org = org, self.db = self.db,
+                                   self.db.only = self.db.only, ...)
       all.list[[id]] <- df.s
     }
   }
@@ -2308,7 +2314,7 @@ Detect_single_marker_all <- function (scrna, step = 0.1, slot = "data", category
 #'
 generate_report <- function(scrna, markers.list,
                             fpath = ".", aggr.other = F, fname = NULL,
-                            top_n_genes = 6, ridge_ncol = 3, assay = "RNA", slot = "data",
+                            top_n_genes = 6, ridge_ncol = 3, assay = "RNA", slot = "data", org = "human",
                             ...){
   markers.list <- markers.list
   saveRDS(markers.list, file = file.path(fpath, "sc2marker.allmarkers.intermediate.rds"))
@@ -2319,7 +2325,7 @@ generate_report <- function(scrna, markers.list,
                       fname = fname,
                       assay = assay,
                       slot = slot,
-                      ridge_ncol = ridge_ncol)
+                      ridge_ncol = ridge_ncol, org = org,...)
   if (is.null(fname)) {
     fname.rmd <- "sc2marker.report.Rmd"
   }else{
@@ -2343,7 +2349,7 @@ generate_report <- function(scrna, markers.list,
 #'
 #'
 generate_report_rmd <- function(scrna, markers.list, aggr.other = F, top_n_genes = 6, ridge_ncol = 3,
-                                fname = NULL, fpath = ".", assay = "RNA", slot = "data"){
+                                fname = NULL, fpath = ".", assay = "RNA", slot = "data", org = "human"){
   if (is.null(fname)) {
     fname.rmd <- "sc2marker.report.Rmd"
   }else{
@@ -2355,6 +2361,7 @@ generate_report_rmd <- function(scrna, markers.list, aggr.other = F, top_n_genes
     chunk.template.s <- gsub("sc2marker_celltype", paste("\"",id, "\"", sep = ""), chunk.template.s)
     chunk.template.s <- gsub("sc2marker_aggrother", aggr.other, chunk.template.s)
     chunk.template.s <- gsub("sc2marker_ncol", ridge_ncol, chunk.template.s)
+    chunk.template.s <- gsub("sc2marker_org", paste("\"",org, "\"", sep = ""), chunk.template.s)
     chunk.template.s <- gsub("top_n_genes", top_n_genes, chunk.template.s)
     chunk.template.s <- gsub("sc2marker_slot", paste("\"",slot, "\"", sep = ""), chunk.template.s)
     chunk.template.s <- gsub("sc2marker_assay", paste("\"",assay, "\"", sep = ""), chunk.template.s)
