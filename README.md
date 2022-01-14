@@ -83,7 +83,8 @@ generate_report(mca.spleen, all.markers, fpath = ".", fname = "mca.spleen")
 All code and R object needed to generate the results can be found [here](https://doi.org/10.5281/zenodo.5703652).
 Also, you can find the original data of MCA, HCA and Stromal data as following:
 [MCA](https://figshare.com/articles/dataset/MCA_DGE_Data/5435866),
-[HCA](https://atlas.fredhutch.org/nygc/multimodal-pbmc/),
+[human-PBMC&lung](https://archive.softwareheritage.org/browse/revision/1c7fcabb18a1971dc4d6e29bc3ed4f6f36b2361f/),
+[human-PBMC](https://atlas.fredhutch.org/nygc/multimodal-pbmc/),
 [niche stromal](https://nicheview.shiny.embl.de/)
 
 
