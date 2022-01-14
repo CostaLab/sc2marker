@@ -14,6 +14,7 @@ generate_report(
   ridge_ncol = 3,
   assay = "RNA",
   slot = "data",
+  org = "human",
   ...
 )
 }

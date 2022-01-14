@@ -19,6 +19,9 @@ Detect_single_marker_all(
   do.f1score = F,
   pseudo.count = 0.01,
   min.tnr = 0.65,
+  org = "mouse",
+  self.db = NULL,
+  self.db.only = F,
   ...
 )
 }
@@ -38,6 +41,12 @@ Detect_single_marker_all(
 \item{min.pct}{only test genes that are detected in a minimum fraction of cells in interested cell types. Default is 0.15}
 
 \item{use.all}{Don't do any filter on input geneset}
+
+\item{org}{Choose database for human or mouse}
+
+\item{self.db}{self defined antibody database}
+
+\item{self.db.only}{Bolean. Only use the self deifned antibody database or not}
 
 \item{id}{interested cell group}
 

@@ -1727,12 +1727,16 @@ get_antibody <- function(markers.list, rm.noab = T, org = "human",
     self.db.table <- utils::read.csv(self.db)
     self.db.table[,1] <- toupper(self.db.table[,1])
     if(self.db.only){
-      markers.list <- markers.list[markers.list$gene %in% self.db.table[,1]]
+      markers.list <- markers.list[markers.list$gene %in% self.db.table$Gene, ]
     }
-    markers.list[i,]$antibody <- self.db.table[self.db.table[,1] == gene.i, ]$Antibody
-    markers.list[i,]$Reliability <- self.db.table[self.db.table[,1] == gene.i, ]$Antibody
+    for (i in 1:nrow(markers.list)) {
+      gene.i <- markers.list[i,]$gene
+      if (gene.i %in% toupper(self.db.table$Gene)) {
+        markers.list[i,]$antibody <- self.db.table[self.db.table$Gene == gene.i, ]$Antibody[1]
+        markers.list[i,]$Reliability <- self.db.table[self.db.table$Gene == gene.i, ]$Reliability[1]
+      }
+    }
   }
-
 
   markers.list <- markers.list[, -3]
   markers.list[,2] <- round(markers.list[,2], 3)

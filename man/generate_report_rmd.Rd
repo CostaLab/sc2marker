@@ -13,7 +13,8 @@ generate_report_rmd(
   fname = NULL,
   fpath = ".",
   assay = "RNA",
-  slot = "data"
+  slot = "data",
+  org = "human"
 )
 }
 \arguments{
