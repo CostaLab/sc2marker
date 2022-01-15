@@ -24,8 +24,8 @@ You can download the R object in "https://zenodo.org/record/5850233#.YeMQs_7MKUk
 suppressMessages(library(SeuratData))
 suppressMessages(library(Seurat))
 
-human_PBMC_lung <- readRDS("human-PBMC&lung.rds")
 
+human_PBMC_lung <- readRDS("/home/ronghui/Downloads/human-PBMC&lung.rds")
 
 human_PBMC_lung <- RenameIdents(object = human_PBMC_lung, `0` = "CD4 T")
 human_PBMC_lung <- RenameIdents(object = human_PBMC_lung, `3` = "CD4 T")
@@ -56,7 +56,7 @@ UMAPPlot(human_PBMC_lung, label= T)
 
 # Markers for mDC cell
 
-```{r NK cell markers}
+```{r mDC cell markers}
 mDC.markers <- Detect_single_marker(human_PBMC_lung, id = "mDC", category = "Flow", org = "human", assay = "RNA.kallisto")
 get_antibody(mDC.markers, org = "human")
 ```
@@ -68,7 +68,7 @@ plot_ridge(human_PBMC_lung, id = "mDC", genes = mDC.markers[1:9,]$gene, ncol = 3
 
 # Markers for pDC cell
 
-```{r NK cell markers}
+```{r pDC cell markers}
 pDC.markers <- Detect_single_marker(human_PBMC_lung, id = "pDC", category = "Flow", org = "human", assay = "RNA.kallisto")
 get_antibody(pDC.markers, org = "human")
 ```
@@ -108,7 +108,7 @@ plot_ridge(human_PBMC_lung, id = "CD8 T", genes = t.markers[1:9,]$gene, ncol = 3
 
 # Markers for Macro
 
-```{r Progenitor cell markers}
+```{r Macro cell markers}
 Macro.markers <- Detect_single_marker(human_PBMC_lung, id = "Macro", category = "Flow", org = "human", assay = "RNA.kallisto")
 get_antibody(Macro.markers, org = "human")
 ```
@@ -120,7 +120,7 @@ plot_ridge(human_PBMC_lung, id = "Macro", genes = Macro.markers[1:9,]$gene, ncol
 
 # Markers for Epithelia
 
-```{r Mono/DC cell markers}
+```{r Epithelia cell markers}
 Epithelia.markers <- Detect_single_marker(human_PBMC_lung, id = "Epithelia", category = "Flow", org = "human", assay = "RNA.kallisto")
 get_antibody(Epithelia.markers, org = "human")
 ```
