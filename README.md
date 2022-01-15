@@ -78,7 +78,7 @@ generate_report(mca.spleen, all.markers, fpath = ".", fname = "mca.spleen")
 
 
 ### vignette of HCA Bone marrow (Human)
-[vignette_human_BM.Rmd](vignette_HCA_BM.Rmd)
+[vignette_human_BM.Rmd](vignette_human_BM.Rmd)
 
 All code and R object needed to generate the results can be found [here](https://doi.org/10.5281/zenodo.5703652).
 Also, you can find the original data of MCA, human-PBMC and human-PBMC&lung and Stromal data as following:
