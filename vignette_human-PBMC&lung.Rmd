@@ -1,0 +1,136 @@
+---
+title: "sc2marker with HCA-BM (Human)"
+author: "sc2marker"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: yes
+    toc_depth: 3
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+suppressMessages(library(sc2marker))
+```
+
+# load data
+
+You can download the R object in "https://zenodo.org/record/5850233#.YeMQs_7MKUk"
+
+```{r SeuratObject, warning=F,message=F}
+suppressMessages(library(SeuratData))
+suppressMessages(library(Seurat))
+
+human_PBMC_lung <- readRDS("human-PBMC&lung.rds")
+
+
+human_PBMC_lung <- RenameIdents(object = human_PBMC_lung, `0` = "CD4 T")
+human_PBMC_lung <- RenameIdents(object = human_PBMC_lung, `3` = "CD4 T")
+human_PBMC_lung <- RenameIdents(object = human_PBMC_lung, `14` = "T.Treg")
+human_PBMC_lung <- RenameIdents(object = human_PBMC_lung, `2` = "CD8 T")
+human_PBMC_lung <- RenameIdents(object = human_PBMC_lung, `7` = "CD8 T")
+human_PBMC_lung <- RenameIdents(object = human_PBMC_lung, `10` = "CD8 T")
+human_PBMC_lung <- RenameIdents(object = human_PBMC_lung, `16` = "T.Prolif")
+human_PBMC_lung <- RenameIdents(object = human_PBMC_lung, `9` = "NK")
+human_PBMC_lung <- RenameIdents(object = human_PBMC_lung, `6` = "B")
+human_PBMC_lung <- RenameIdents(object = human_PBMC_lung, `13` = "B")
+human_PBMC_lung <- RenameIdents(object = human_PBMC_lung, `8` = "B")
+human_PBMC_lung <- RenameIdents(object = human_PBMC_lung, `20` = "B")
+human_PBMC_lung <- RenameIdents(object = human_PBMC_lung, `11` = "Mono")
+human_PBMC_lung <- RenameIdents(object = human_PBMC_lung, `15` = "mDC")
+human_PBMC_lung <- RenameIdents(object = human_PBMC_lung, `17` = "pDC")
+human_PBMC_lung <- RenameIdents(object = human_PBMC_lung, `12` = "Macro")
+human_PBMC_lung <- RenameIdents(object = human_PBMC_lung, `1` = "Mono")
+human_PBMC_lung <- RenameIdents(object = human_PBMC_lung, `4` = "Mono")
+human_PBMC_lung <- RenameIdents(object = human_PBMC_lung, `5` = "Mono")
+human_PBMC_lung <- RenameIdents(object = human_PBMC_lung, `19` = "mDC")
+human_PBMC_lung <- RenameIdents(object = human_PBMC_lung, `18` = "Fibro")
+human_PBMC_lung <- RenameIdents(object = human_PBMC_lung, `21` = "Epithelia")
+human_PBMC_lung@meta.data$anno <- human_PBMC_lung@active.ident
+UMAPPlot(human_PBMC_lung, label= T)
+
+```
+
+# Markers for mDC cell
+
+```{r NK cell markers}
+mDC.markers <- Detect_single_marker(human_PBMC_lung, id = "mDC", category = "Flow", org = "human", assay = "RNA.kallisto")
+get_antibody(mDC.markers, org = "human")
+```
+
+```{r message=F, warning=F, fig.height=9, fig.width=9}
+# Ridge plot of top 9 markers of NK cells
+plot_ridge(human_PBMC_lung, id = "mDC", genes = mDC.markers[1:9,]$gene, ncol = 3, assay = "RNA.kallisto", aggr.other = F)
+```
+
+# Markers for pDC cell
+
+```{r NK cell markers}
+pDC.markers <- Detect_single_marker(human_PBMC_lung, id = "pDC", category = "Flow", org = "human", assay = "RNA.kallisto")
+get_antibody(pDC.markers, org = "human")
+```
+
+
+```{r message=F, warning=F, fig.height=9, fig.width=9}
+# Ridge plot of top 9 markers of NK cells
+plot_ridge(human_PBMC_lung, id = "pDC", genes = pDC.markers[1:9,]$gene, ncol = 3, assay = "RNA.kallisto", aggr.other = F)
+```
+
+
+# Markers for B cell
+
+```{r B cell markers}
+b.markers <- Detect_single_marker(human_PBMC_lung, id = "B", category = "Flow", org = "human", assay = "RNA.kallisto")
+get_antibody(b.markers, org = "human")
+```
+
+```{r message=F, warning=F, fig.height=9, fig.width=9}
+# Ridge plot of top 9 markers of B cells
+plot_ridge(human_PBMC_lung, id = "B", genes = b.markers[1:9,]$gene, ncol = 3, assay = "RNA.kallisto", aggr.other = F)
+```
+
+
+# Markers for CD8 T cell
+
+```{r T cell markers}
+t.markers <- Detect_single_marker(human_PBMC_lung, id = "CD8 T", category = "Flow", org = "human", assay = "RNA.kallisto")
+get_antibody(t.markers, org = "human")
+```
+
+```{r message=F, warning=F, fig.height=9, fig.width=9}
+# Ridge plot of top 9 markers of B cells
+plot_ridge(human_PBMC_lung, id = "CD8 T", genes = t.markers[1:9,]$gene, ncol = 3, assay = "RNA.kallisto", aggr.other = F)
+```
+
+
+# Markers for Macro
+
+```{r Progenitor cell markers}
+Macro.markers <- Detect_single_marker(human_PBMC_lung, id = "Macro", category = "Flow", org = "human", assay = "RNA.kallisto")
+get_antibody(Macro.markers, org = "human")
+```
+
+```{r message=F, warning=F, fig.height=9, fig.width=9}
+# Ridge plot of top 9 markers of B cells
+plot_ridge(human_PBMC_lung, id = "Macro", genes = Macro.markers[1:9,]$gene, ncol = 3, assay = "RNA.kallisto", aggr.other = F)
+```
+
+# Markers for Epithelia
+
+```{r Mono/DC cell markers}
+Epithelia.markers <- Detect_single_marker(human_PBMC_lung, id = "Epithelia", category = "Flow", org = "human", assay = "RNA.kallisto")
+get_antibody(Epithelia.markers, org = "human")
+```
+
+```{r message=F, warning=F, fig.height=9, fig.width=9}
+# Ridge plot of top 9 markers of B cells
+plot_ridge(human_PBMC_lung, id = "Epithelia", genes = Epithelia.markers[1:9,]$gene, ncol = 3, assay = "RNA.kallisto", aggr.other = F)
+```
+
+
+
+
+
