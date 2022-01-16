@@ -19,6 +19,8 @@ library(ggsci)
 require(sc2marker)
 require(SeuratObject)
 
+### You can download the R object in "https://zenodo.org/record/5850233#.YeMQs_7MKUk"
+
 human_PBMC <- readRDS("human-PBMC.rds")
 table(human_PBMC@active.ident)
 ```
