@@ -40,7 +40,7 @@ nk.markers <- Detect_single_marker(mca.spleen, id = "NK cell(Spleen)", category 
 get_antibody(nk.markers, rm.noab = F)
 ```
 
-## Detect markers for given cell cluster
+## To include your own antibody database
 
 Example of self made antibody database can be found in [Self-made database](Self_DB.csv)
 
