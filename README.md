@@ -13,7 +13,7 @@ require(sc2marker)
 require(Seurat)
 ```
 
-## Detect markers for one cell cluster
+## Detect markers for given cell cluster
 
 To run sc2marker you need to execute the following command, providing a clustered single  cell data sets (as Seurat object), the cell type of interest and the antibody databased (IHC, ICC or Flow). 
 
@@ -40,6 +40,14 @@ nk.markers <- Detect_single_marker(mca.spleen, id = "NK cell(Spleen)", category 
 get_antibody(nk.markers, rm.noab = F)
 ```
 
+## Detect markers for given cell cluster
+
+Example of self made antibody database can be found in [Self-made database](Self_DB.csv)
+
+```
+nk.markers <- Detect_single_marker(mca.spleen, id = "NK cell(Spleen)", category = "Flow", org = "mouse", self.db = "/Path to Self_DB.csv/")
+get_antibody(nk.markers, self.db = "/Path to Self_DB.csv/", org = "mouse")
+```
 
 ## calculate markers for all cell clusters
 
