@@ -19,7 +19,7 @@ library(ggsci)
 require(sc2marker)
 require(SeuratObject)
 
-human_PBMC <- readRDS("/home/ronghui/project/scRNA/exp/sc2marker/citeseq/human-PBMC.rds")
+human_PBMC <- readRDS("human-PBMC.rds")
 table(human_PBMC@active.ident)
 ```
 
