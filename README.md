@@ -91,6 +91,9 @@ generate_report(mca.spleen, all.markers, fpath = ".", fname = "mca.spleen")
 ### vignette of Human PBMC&lung (human-PBMC&lung)
 [vignette_human_PBMC&lung.Rmd](vignette_human-PBMC&lung.Rmd)
 
+### vignette of Human Bone marrow (human-PBMC)
+[vignette_human_PBMC.Rmd](vignette_human_PBMC.Rmd)
+
 All code and R object needed to generate the results can be found [here](https://doi.org/10.5281/zenodo.5703652).
 Also, you can find the original data of MCA, human-PBMC and human-PBMC&lung and Stromal data as following:
 [MCA](https://figshare.com/articles/dataset/MCA_DGE_Data/5435866),
