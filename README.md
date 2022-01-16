@@ -77,10 +77,10 @@ generate_report(mca.spleen, all.markers, fpath = ".", fname = "mca.spleen")
 [vignette_MCA_Spleen.Rmd](vignette_MCA_Spleen.Rmd)
 
 
-### vignette of HCA Bone marrow (Human)
+### vignette of Human Bone marrow (human-BM)
 [vignette_human_BM.Rmd](vignette_human_BM.Rmd)
 
-### vignette of HCA Bone marrow (Human)
+### vignette of Human PBMC&lung (human-PBMC&lung)
 [vignette_human_PBMC&lung.Rmd](vignette_human-PBMC&lung.Rmd)
 
 All code and R object needed to generate the results can be found [here](https://doi.org/10.5281/zenodo.5703652).
