@@ -1,0 +1,97 @@
+---
+title: "Cell marker identification with seurat samples"
+author: "Ronghui"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: yes
+    toc_depth: 3
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+---
+
+```{r echo=FALSE, message=FALSE, warning=F}
+library(Seurat)
+library(ggplot2)
+library(reshape2)
+library(ggsci)
+require(sc2marker)
+require(SeuratObject)
+
+human_PBMC <- readRDS("/home/ronghui/project/scRNA/exp/sc2marker/citeseq/human-PBMC.rds")
+table(human_PBMC@active.ident)
+```
+
+# Markers for B cell
+
+```{r B cell markers}
+b.markers <- Detect_single_marker(human_PBMC, id = "B", category = "Flow", min.pct = 0.06, assay = "SCT", min.fc = 0.02)
+get_antibody(b.markers, org = "human")
+```
+
+```{r message=F, warning=F, fig.height=9, fig.width=9}
+# Ridge plot of top 9 markers of B cells
+plot_ridge(human_PBMC, id = "B", genes = b.markers[1:9,]$gene, ncol = 3, assay = "SCT", aggr.other = F)
+```
+
+# Markers for Mono cell
+
+```{r Mono cell markers}
+Mono.markers <- Detect_single_marker(human_PBMC, id = "Mono", category = "Flow", org = "human", assay = "SCT")
+get_antibody(Mono.markers, org = "human")
+```
+
+```{r message=F, warning=F, fig.height=9, fig.width=9}
+# Ridge plot of top 9 markers of B cells
+plot_ridge(human_PBMC, id = "Mono", genes = Mono.markers[1:9,]$gene, ncol = 3, assay = "SCT", aggr.other = F)
+```
+
+# Markers for DC cell
+
+```{r DC cell markers}
+DC.markers <- Detect_single_marker(human_PBMC, id = "DC", category = "Flow", org = "human", assay = "SCT")
+get_antibody(DC.markers, org = "human")
+```
+
+```{r message=F, warning=F, fig.height=9, fig.width=9}
+# Ridge plot of top 9 markers of B cells
+plot_ridge(human_PBMC, id = "DC", genes = DC.markers[1:9,]$gene, ncol = 3, assay = "SCT", aggr.other = F)
+```
+
+# Markers for NK cell
+
+```{r NK cell markers}
+NK.markers <- Detect_single_marker(human_PBMC, id = "NK", category = "Flow", org = "human", assay = "SCT")
+get_antibody(NK.markers, org = "human")
+```
+
+```{r message=F, warning=F, fig.height=9, fig.width=9}
+# Ridge plot of top 9 markers of B cells
+plot_ridge(human_PBMC, id = "NK", genes = NK.markers[1:9,]$gene, ncol = 3, assay = "SCT", aggr.other = F)
+```
+
+
+# Markers for CD8 T cell
+
+```{r cd8 T cell markers}
+t.markers <- Detect_single_marker(human_PBMC, id = "CD8 T", category = "Flow", org = "human", assay = "SCT")
+get_antibody(t.markers, org = "human")
+```
+
+```{r message=F, warning=F, fig.height=9, fig.width=9}
+# Ridge plot of top 9 markers of B cells
+plot_ridge(human_PBMC, id = "CD8 T", genes = t.markers[1:9,]$gene, ncol = 3, assay = "SCT", aggr.other = F)
+```
+
+# Markers for CD4 T cell
+
+```{r cd4 T cell markers}
+t.markers <- Detect_single_marker(human_PBMC, id = "CD4 T", category = "Flow", org = "human", min.pct = 0.06, assay = "SCT", min.fc = 0.02)
+get_antibody(t.markers, org = "human")
+```
+
+```{r message=F, warning=F, fig.height=9, fig.width=9}
+# Ridge plot of top 9 markers of B cells
+plot_ridge(human_PBMC, id = "CD4 T", genes = t.markers[1:9,]$gene, ncol = 3, assay = "SCT", aggr.other = F)
+```
