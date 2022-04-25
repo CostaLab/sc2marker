@@ -5,7 +5,7 @@
 #' @return
 #'
 Combine_marker_umap <- function(scrna, df.split, id){
-  idents.c <- Idents(scrna)
+  idents.c <- Seurat::Idents(scrna)
   gene1 <- df.split$gene[1]
   gene2 <- df.split$gene[2]
   gene1.split <- df.split$split.value[1]
@@ -15,19 +15,19 @@ Combine_marker_umap <- function(scrna, df.split, id){
   cells.2 <- GetCellNames(cbmc, gene2, gene2.split, df.split$direction[2])
   cells.1.2 <- intersect(cells.1, cells.2)
 
-  Idents(scrna) <- "other"
-  Idents(scrna, cells = cells.1) <- paste(gene1, "filter")
+  Seurat::Idents(scrna) <- "other"
+  Seurat::Idents(scrna, cells = cells.1) <- paste(gene1, "filter")
   p1 <- UMAPPlot(scrna, cols = c('red', "grey"))
 
-  Idents(scrna) <- "other"
-  Idents(scrna, cells = cells.2) <- paste(gene2, "filter")
+  Seurat::Idents(scrna) <- "other"
+  Seurat::Idents(scrna, cells = cells.2) <- paste(gene2, "filter")
   p2 <- UMAPPlot(scrna, cols = c('blue', "grey"))
 
-  Idents(scrna) <- "other"
-  Idents(scrna, cells = cells.1.2) <- paste(gene1, "+", gene2)
+  Seurat::Idents(scrna) <- "other"
+  Seurat::Idents(scrna, cells = cells.1.2) <- paste(gene1, "+", gene2)
   p3 <- UMAPPlot(scrna, cols = c('black',  "grey"))
 
-  Idents(scrna) <- idents.c
+  Seurat::Idents(scrna) <- idents.c
   scrna <- makeid(scrna, id)
   p4 <- UMAPPlot(scrna)
 
@@ -58,7 +58,7 @@ plot_filter_stepbystep_first2 <- function(scrna, df.split, id, step = 0.01){
   gene2 <- df.split$gene[2]
   df <- data.frame(exp1 = scrna@assays$RNA@data[gene1,],
                    exp2 = scrna@assays$RNA@data[gene2,],
-                   id = as.character(makeid(scrna, id)@active.ident))
+                   id = as.character(Seurat::Idents(makeid(scrna, id))))
 
   x.split <- df.split$split.value[1]
   y.split <- df.split$split.value[2]
@@ -75,7 +75,7 @@ plot_filter_combination_first2 <- function(scrna, df.split, id, step = 0.01){
   gene2 <- df.split$gene[2]
   df <- data.frame(exp1 = scrna@assays$RNA@data[gene1,],
                    exp2 = scrna@assays$RNA@data[gene2,],
-                   ID = as.character(makeid(scrna, id)@active.ident))
+                   ID = as.character(Seurat::Idents(makeid(scrna, id))))
 
   x.split <- df.split$split.value[1]
   y.split <- df.split$split.value[2]
@@ -103,17 +103,17 @@ plot_filter_combination_first2 <- function(scrna, df.split, id, step = 0.01){
 grid_plot <- function(scrna, df.split, cellgroup){
   x.len <- length(df.split$gene)
   plots = list()
-  # scrna.id <- scrna@active.ident
+  # scrna.id <- Idents(scrna)
   scrna <- makeid(scrna, cellgroup)
   scrna.left <- scrna
   for (gene in df.split$gene) {
     plots[[gene]] <- VlnPlot(scrna.left, features = gene) + geom_hline(yintercept=df.split[df.split$gene == gene, ]$split.value, linetype = 1)
     left.cells <- GetCellNames(scrna.left, gene, df.split[df.split$gene == gene, ]$split.value, df.split[df.split$gene == gene, ]$direction)
     scrna.left <- subset(scrna.left, cells = left.cells)
-    tp <- sum(scrna.left@active.ident == cellgroup)
-    fp <- sum(scrna.left@active.ident != cellgroup)
+    tp <- sum(Seurat::Idents(scrna.left) == cellgroup)
+    fp <- sum(Seurat::Idents(scrna.left) != cellgroup)
     x.pre <- round(tp/(tp+fp), 3)
-    x.rec <- sum(scrna.left@active.ident == cellgroup)/sum(scrna@active.ident == cellgroup)
+    x.rec <- sum(Seurat::Idents(scrna.left) == cellgroup)/sum(Seurat::Idents(scrna) == cellgroup)
     x.rec <- round(x.rec, 3)
     plots[[gene]] <- plots[[gene]] + xlab(paste("Precision:", x.pre, " Recall:", x.rec, sep = ""))
     plots[[gene]] <- plots[[gene]] + ggtitle(paste(gene, df.split[df.split$gene == gene, ]$direction))
@@ -128,8 +128,8 @@ marker_stepbystep <- function(scrna, cellgroup, depth = 2, geneset = NULL, step 
     geneset <- rownames(scrna)
   }
   geneset <- intersect(rownames(scrna[["RNA"]]), geneset)
-  len.id <- sum(scrna@active.ident == cellgroup)
-  len.other <- sum(scrna@active.ident != cellgroup)
+  len.id <- sum(Seurat::Idents(scrna) == cellgroup)
+  len.other <- sum(Seurat::Idents(scrna) != cellgroup)
   df.split <- data.frame()
 
   for (variable in seq(depth)) {
@@ -175,7 +175,7 @@ plot_combine_PRAUC <- function(scrna, gene1, gene2, id, step = 0.01, return.obj 
 
 get_split_pos_tp <- function(scrna, gene, id, step = 0.01) {
   data.mat.surf <- data.frame(exp = scrna@assays$RNA@data[gene,],
-                              id = as.character(makeid(scrna, id)@active.ident))
+                              id = as.character(Seurat::Idents(makeid(scrna, id))))
   gene.prauc <- data.frame(x.val <- c(),
                            margin <- c())
   data.id <- data.mat.surf[data.mat.surf$id == id,]
@@ -208,7 +208,7 @@ get_split_pos_tp <- function(scrna, gene, id, step = 0.01) {
 
 get_split_neg_tp <- function(scrna, gene, id, step = 0.01) {
   data.mat.surf <- data.frame(exp = scrna@assays$RNA@data[gene,],
-                              id = as.character(makeid(scrna, id)@active.ident))
+                              id = as.character(Seurat::Idents(makeid(scrna, id))))
   gene.prauc <- data.frame(x.val <- c(),
                            margin <- c())
   data.id <- data.mat.surf[data.mat.surf$id == id,]
@@ -244,7 +244,7 @@ get_split_neg_tp <- function(scrna, gene, id, step = 0.01) {
 get_PRAUC_matrix_combine_markers_neg_pos <- function(scrna, gene1,  gene2, id, step = 0.01){
   data.mat.surf <- data.frame(gene1 = scrna@assays$RNA@data[gene1,],
                               gene2 = scrna@assays$RNA@data[gene2,],
-                              id = as.character(makeid(scrna, id)@active.ident))
+                              id = as.character(Seurat::Idents(makeid(scrna, id))))
   gene.prauc <- data.frame(x.pre <- c(),
                            x.rec <- c())
   data.id <- data.mat.surf[data.mat.surf$id == id,]
@@ -281,7 +281,7 @@ get_PRAUC_matrix_combine_markers_neg_pos <- function(scrna, gene1,  gene2, id, s
 get_PRAUC_matrix_combine_markers_neg <- function(scrna, gene1,  gene2, id, step = 0.01){
   data.mat.surf <- data.frame(gene1 = scrna@assays$RNA@data[gene1,],
                               gene2 = scrna@assays$RNA@data[gene2,],
-                              id = as.character(makeid(scrna, id)@active.ident))
+                              id = as.character(Seurat::Idents(makeid(scrna, id))))
   gene.prauc <- data.frame(x.pre <- c(),
                            x.rec <- c())
   data.id <- data.mat.surf[data.mat.surf$id == id,]
@@ -313,7 +313,7 @@ get_PRAUC_matrix_combine_markers_neg <- function(scrna, gene1,  gene2, id, step 
 get_PRAUC_matrix_combine_markers <- function(scrna, gene1,  gene2, id, step = 0.01){
   data.mat.surf <- data.frame(gene1 = scrna@assays$RNA@data[gene1,],
                               gene2 = scrna@assays$RNA@data[gene2,],
-                              id = as.character(makeid(scrna, id)@active.ident))
+                              id = as.character(Seurat::Idents(makeid(scrna, id))))
   gene.prauc <- data.frame(x.pre <- c(),
                            x.rec <- c())
   data.id <- data.mat.surf[data.mat.surf$id == id,]
@@ -1159,8 +1159,8 @@ marker_stepbystep.2 <- function(scrna, cellgroup, depth = 2, geneset = NULL, ste
     geneset <- rownames(scrna[["RNA"]])
   }
   geneset <- intersect(rownames(scrna[["RNA"]]), geneset)
-  len.id <- sum(scrna@active.ident == cellgroup)
-  len.other <- sum(scrna@active.ident != cellgroup)
+  len.id <- sum(Seurat::Idents(scrna) == cellgroup)
+  len.other <- sum(Seurat::Idents(scrna) != cellgroup)
   df.split <- data.frame()
 
   suppressWarnings(
@@ -1406,8 +1406,8 @@ firstup <- function(x) {
 #'
 
 makeid <- function(scrna, id, panel = "seurat_clusters"){
-  levels(scrna@active.ident) <- c(levels(scrna@active.ident), "other")
-  scrna@active.ident[scrna@active.ident != id] <- 'other'
+  levels(Seurat::Idents(scrna)) <- c(levels(Seurat::Idents(scrna)), "other")
+  Seurat::Idents(scrna)[Seurat::Idents(scrna) != id] <- 'other'
   return(scrna)
 }
 
@@ -1970,11 +1970,11 @@ Combine_markers_point_plot <- function(scrna, c.markers, id, ranking = 1, assay 
 
   }
 
-  tp <- sum(scrna.left@active.ident == id)
-  fp <- sum(scrna.left@active.ident != id)
+  tp <- sum(Seurat::Idents(scrna.left) == id)
+  fp <- sum(Seurat::Idents(scrna.left) != id)
   x.pre <- tp/(tp+fp)
   x.pre <- round(x.pre, 3)
-  x.rec <- sum(scrna.left@active.ident == id)/sum(scrna@active.ident == id)
+  x.rec <- sum(Seurat::Idents(scrna.left) == id)/sum(Seurat::Idents(scrna.left) == id)
   x.rec <- round(x.rec, 3)
 
   g <- ggplot(df)+
@@ -2268,7 +2268,7 @@ Detect_single_marker_all <- function (scrna, step = 0.1, slot = "data", category
 {
   all.list <- vector("list")
   if (length(clusters_to_detect) == 0) {
-    for (id in unique(scrna@active.ident)) {
+    for (id in unique(Seurat::Idents(scrna))) {
       message(paste("Calculating Markers for", id))
       df.s <- Detect_single_marker(scrna = scrna, id = id,
                                    step = step, slot = slot, assay = assay, min.pct = min.pct,
@@ -2280,8 +2280,8 @@ Detect_single_marker_all <- function (scrna, step = 0.1, slot = "data", category
     }
   }
   else {
-    cluster.in <- intersect(clusters_to_detect, unique(scrna@active.ident))
-    cluster.out <- setdiff(clusters_to_detect, unique(scrna@active.ident))
+    cluster.in <- intersect(clusters_to_detect, unique(Seurat::Idents(scrna)))
+    cluster.out <- setdiff(clusters_to_detect, unique(Seurat::Idents(scrna)))
     cat(paste("These clusters are detected\n"))
     cat(cluster.in)
     cat(paste("\n"))

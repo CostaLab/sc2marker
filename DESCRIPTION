@@ -7,7 +7,7 @@ Description: More about what it does (maybe more than one line)
     Use four spaces when indenting paragraphs within the Description.
 URL: https://github.com/CostaLab/sc2marker
 License: MIT + file LICENSE
-biocViews:  SystemsBiology, SingleCell, Software
+biocViews: SystemsBiology, SingleCell, Software
 Encoding: UTF-8
 LazyData: TRUE
 Roxygen: list(markdown = TRUE)
@@ -27,3 +27,4 @@ Imports:
 	rmarkdown,
 Suggests:
     knitr
+VignetteBuilder: knitr
