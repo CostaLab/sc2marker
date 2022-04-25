@@ -1454,6 +1454,8 @@ Detect_single_marker <- function(scrna, id, step = 0.1,  slot = "data", category
   genes.to.use <- NULL
   SeuratObject::DefaultAssay(scrna) <- assay
 
+  ## get application and org
+
   if (org == "human") {
     if (!is.null(category)) {
       if (!(category %in% c("ICC.IHC", "ICC", "IHC", "Flow", "FlowComet"))) {
@@ -1524,7 +1526,7 @@ Detect_single_marker <- function(scrna, id, step = 0.1,  slot = "data", category
       cat(paste("\n"))
     }
   }else{
-    cat(paste("\n Using all genes as input. \n"))
+    cat(paste("\n Using all genes as input."))
     cat(paste("\n"))
     genes.to.use <- rownames(scrna[[assay]])
 
@@ -1541,14 +1543,12 @@ Detect_single_marker <- function(scrna, id, step = 0.1,  slot = "data", category
   }
 
   markers <- de
-
   gene.rank.list <- data.frame()
 
   scrna@active.assay <- assay
   exprs.matrix <- Seurat::FetchData(scrna, vars = c(rownames(markers), "ident"), slot = slot)
 
   gene.list <- rownames(markers)
-  # gene.list <- toupper(rownames(markers))
 
   for (genes in gene.list) {
     df.input <- exprs.matrix[, c(genes, "ident")]
@@ -1582,6 +1582,8 @@ get_gene_score <- function (exprs.matrix, celltype, gene, step = 0.01, pseudo.co
   exprs.matrix <- data.table::as.data.table(exprs.matrix)
   exprs.max <- max(exprs.matrix$exp)
   exprs.min <- min(exprs.matrix$exp)
+
+  # Min-max normalization
   exprs.matrix$exp <- normalize(exprs.matrix$exp)
   exprs.matrix$exp <- round(exprs.matrix$exp, 3)
   exprs.matrix$exp.n <- 0 - exprs.matrix$exp
@@ -1593,7 +1595,11 @@ get_gene_score <- function (exprs.matrix, celltype, gene, step = 0.01, pseudo.co
   data.id.l <- nrow(data.id)
   data.o.l <- nrow(data.other)
   data.all.l <- nrow(exprs.matrix)
+
+  # grid search for optimal cutoff
   for (x.val in seq(0.001, 0.99, step)) {
+
+    # Positive direction
     data.i.a <- subset(data.id, exp > x.val)
     data.o.a <- subset(data.other, exp > x.val)
     data.i.b <- subset(data.id, exp <= x.val)
@@ -1604,6 +1610,8 @@ get_gene_score <- function (exprs.matrix, celltype, gene, step = 0.01, pseudo.co
     x.margin.p <- x.margin.p/data.all.l
     de.p <- data.frame(x.val, x.margin.p)
     gene.prauc.p <- rbind(gene.prauc.p, de.p)
+
+    # Negative direction
     x.val.n <- 0 - x.val
     data.i.a <- subset(data.id, exp.n > x.val.n)
     data.o.a <- subset(data.other, exp.n > x.val.n)
@@ -1649,6 +1657,8 @@ get_gene_score <- function (exprs.matrix, celltype, gene, step = 0.01, pseudo.co
   fp <- sum(data.other$exp < x.val)
   tn <- sum(data.other$exp >= x.val)
   fn <- sum(data.id$exp >= x.val)
+
+  # Show top 5 false positive resources
   fp.pro <- subset(data.other, exp < x.val)
   fp.pro <- as.data.frame(table(fp.pro$id))
   fp.pro <- fp.pro[order(fp.pro$Freq, decreasing = T), ]
@@ -1742,9 +1752,6 @@ get_antibody <- function(markers.list, rm.noab = T, org = "human",
   markers.list[,2] <- round(markers.list[,2], 3)
   colnames(markers.list)[2] <- "Alpha"
   colnames(markers.list)[3] <- "Score"
-  # msc.markers <- distinct(msc.markers, gene, .keep_all = TRUE)
-
-  # markers.list <- markers.list[!is.null(markers.list$antibody), ]
   if (rm.noab) {
     markers.list <- markers.list[markers.list$antibody != "NULL",]
   }
@@ -2010,7 +2017,7 @@ Combine_markers_point_plot <- function(scrna, c.markers, id, ranking = 1, assay 
 #' @return Ridge plot
 #' @export
 #'
-plot_ridge <- function(scrna, id, genes, ncol = 1, step = 0.01, show_split = T, assay = "RNA", slot = "data", aggr.other = T){
+plot_ridge <- function(scrna, id, genes, ncol = 1, step = 0.01, show_split = T, assay = "RNA", slot = "data", aggr.other = F){
   scrna@active.assay <- assay
   require(ggplot2)
   df.all <-data.frame()
