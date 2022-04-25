@@ -81,18 +81,18 @@ generate_report(mca.spleen, all.markers, fpath = ".", fname = "mca.spleen")
 
 # Reproduction
 
-### vignette of MCA Spleen (Mouse)
-[vignette_MCA_Spleen.Rmd](vignette_MCA_Spleen.Rmd)
+### Code for MCA Spleen (Mouse)
+[Example_MCA_Spleen.Rmd](Example_MCA_Spleen.Rmd)
 
 
-### vignette of Human Bone marrow (human-BM)
-[vignette_human_BM.Rmd](vignette_human_BM.Rmd)
+### Code for Human Bone marrow (human-BM)
+[Example_human_BM.Rmd](Example_human_BM.Rmd)
 
-### vignette of Human PBMC&lung (human-PBMC&lung)
-[vignette_human_PBMC&lung.Rmd](vignette_human-PBMC&lung.Rmd)
+### Code for Human PBMC&lung (human-PBMC&lung)
+[Example_human_PBMC&lung.Rmd](Example_human-PBMC&lung.Rmd)
 
-### vignette of Human Bone marrow (human-PBMC)
-[vignette_human_PBMC.Rmd](vignette_human_PBMC.Rmd)
+### Code for Human Bone marrow (human-PBMC)
+[Example_human_PBMC.Rmd](Example_human_PBMC.Rmd)
 
 All code and R object needed to generate the results can be found [here](https://zenodo.org/record/5854754#.YeknMf7MKUm).
 Also, you can find the original data of MCA, human-PBMC and human-PBMC&lung and Stromal data as following:
