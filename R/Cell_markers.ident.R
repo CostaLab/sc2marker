@@ -427,21 +427,33 @@ Detect_single_marker <- function(scrna, id, step = 0.1,  slot = "data", category
     de <- de[de$avg_log2FC > min.fc, ]
   }
 
+  de <- na.omit(de)
   markers <- de
   gene.rank.list <- data.frame()
 
-  scrna@active.assay <- assay
+  Seurat::DefaultAssay(scrna) <- assay
   exprs.matrix <- Seurat::FetchData(scrna, vars = c(rownames(markers), "ident"), slot = slot)
+  # Ids.totest <- Idents(scrna)
 
   gene.list <- rownames(markers)
+  gene.list <- intersect.ignorecase(rownames(scrna[[assay]]), gene.list)
+
+  pb <- utils::txtProgressBar(min = 0, max = length(gene.list), style = 3, file = stderr())
+  i = 1
 
   for (genes in gene.list) {
-    df.input <- exprs.matrix[, c(genes, "ident")]
-    de <- data.frame(get_gene_score(df.input, gene = genes, celltype = id,
-                                    step = step, pseudo.count = pseudo.count, min.tnr = min.tnr))
-    names(de)<-c("gene", "split.value","x.margin", "x.margin.adj", "TP", "FP", "TN", "FN", "direction", "FP details")
-    gene.rank.list <- rbind(gene.rank.list, de)
+    tryCatch({
+      # exprs.matrix <- Seurat::FetchData(scrna, vars = c(genes, "ident"), slot = slot)
+      df.input <- exprs.matrix[, c(genes, "ident")]
+      de <- data.frame(get_gene_score(df.input, gene = genes, celltype = id,
+                                      step = step, pseudo.count = pseudo.count, min.tnr = min.tnr))
+      names(de)<-c("gene", "split.value","x.margin", "x.margin.adj", "TP", "FP", "TN", "FN", "direction", "FP details")
+      gene.rank.list <- rbind(gene.rank.list, de)
+    }, error=function(e){cat("Warning :",conditionMessage(e), "\n")})
+    setTxtProgressBar(pb = pb, value = i)
+    i = i + 1
   }
+  close(con = pb)
 
   gene.rank.list <- gene.rank.list[order(gene.rank.list$x.margin.adj, decreasing = T),]
   rownames(gene.rank.list) <- seq(nrow(gene.rank.list))
@@ -751,7 +763,8 @@ GetGenes <- function(scrna, slot = "data", category = NULL, geneset = NULL,
 #' @export
 #'
 plot_ridge <- function(scrna, id, genes, ncol = 1, step = 0.01, show_split = T, assay = "RNA", slot = "data", aggr.other = F){
-  scrna@active.assay <- assay
+  Seurat::DefaultAssay(scrna) <- assay
+  # scrna@active.assay <- assay
   require(ggplot2)
   df.all <-data.frame()
   df.split <-data.frame()
@@ -853,7 +866,8 @@ plot_ridge <- function(scrna, id, genes, ncol = 1, step = 0.01, show_split = T, 
 #'
 
 get_gene_score_pos.fbeta <- function(scrna, gene, id, step = 0.01, assay = "RNA", slot = "data") {
-  scrna@active.assay <- assay
+  Seurat::DefaultAssay(scrna) <- assay
+  # scrna@active.assay <- assay
   data.mat.surf <- Seurat::FetchData(scrna, vars = c(gene, "ident"), slot = slot)
   colnames(data.mat.surf) <- c("exp", "id")
 
@@ -919,7 +933,8 @@ get_gene_score_pos.fbeta <- function(scrna, gene, id, step = 0.01, assay = "RNA"
 #'
 
 get_gene_score_neg.fbeta <- function(scrna, gene, id, step = 0.01, assay = "RNA", slot = "data") {
-  scrna@active.assay <- assay
+  Seurat::DefaultAssay(scrna) <- assay
+  # scrna@active.assay <- assay
   data.mat.surf <- Seurat::FetchData(scrna, vars = c(gene, "ident"), slot = slot)
   colnames(data.mat.surf) <- c("exp", "id")
   data.mat.surf$exp <- normalize(data.mat.surf$exp)
@@ -1114,9 +1129,9 @@ generate_report_rmd <- function(scrna, markers.list, aggr.other = F, top_n_genes
 }
 
 
-
+#########________________________________________
 #########   code for next version (developing)
-
+#########________________________________________
 
 Detect_combine_markers <- function(scrna, id, step = 0.1, category = NULL,
                                    geneset = NULL, assay = "RNA", slot = "data",
@@ -1391,7 +1406,8 @@ get_split_pos_neg <- function(scrna, gene1, gene2, id, step = 0.01, assay = "RNA
 
 
 get_split_neg_neg  <- function(scrna, gene1, gene2, id, step = 0.01, assay = "RNA", slot = "data") {
-  scrna@active.assay <- assay
+  Seurat::DefaultAssay(scrna) <- assay
+  # scrna@active.assay <- assay
   data.mat.surf <- Seurat::FetchData(scrna, vars = c(gene1, gene2, "ident"), slot = slot)
   colnames(data.mat.surf) <- c("exp1", "exp2", "id")
   data.mat.surf$exp1 <- normalize(data.mat.surf$exp1)
