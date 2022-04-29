@@ -1,6 +1,6 @@
 Package: sc2marker
 Title: Detect marker panel from scRNA-seq profile
-Version: 1.0.2
+Version: 1.0.3
 Author: Ronghui Li
 Maintainer: <hilironghui@gmail.com>
 Description: More about what it does (maybe more than one line)
