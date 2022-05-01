@@ -90,3 +90,10 @@ get_antibody(Macro.markers, org = "mouse")
 # Ridge plot of top 9 markers of B cells
 plot_ridge(mca.spleen, id = "Macro", genes = Macro.markers[1:9,]$gene, ncol = 3, assay = "RNA", aggr.other = F)
 ```
+
+# Session Info
+
+```{r}
+sessionInfo()
+```
+
