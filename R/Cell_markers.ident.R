@@ -75,7 +75,6 @@ get_gene_score_pos <- function(scrna, gene, id, step = 0.01, assay = "RNA", slot
   x.margin.adj <- x.margin*(tp/data.id.l)*(tn/data.o.l)*(x.factor.p**2)
   x.val <- x.val*exprs.max + exprs.min
   x.split.p <- data.frame(gene, x.val, x.margin, x.margin.adj, tp, fp, tn, fn, "+", fp.string)
-
   return(x.split.p)
 }
 
@@ -770,12 +769,9 @@ plot_ridge <- function(scrna, id, genes, ncol = 1, step = 0.01, show_split = T, 
   df.split <-data.frame()
   if (aggr.other) {
     for (gene in genes) {
-      fc <- Seurat::FoldChange(scrna, ident.1 = id, features = gene)$avg_log2FC
-      if (fc > 0) {
-        df.g <- get_gene_score_pos(scrna, gene, id, step = 0.01, assay = assay, slot = slot)
-      }else{
-        df.g <- get_gene_score_neg(scrna, gene = gene, id = id, step = 0.01, assay = assay, slot = slot)
-      }
+      df.g <- get_gene_score(Seurat::FetchData(scrna, vars = c(gene, "ident")), celltype = id, gene = gene)
+      df.g <- df.g[order(df.g$x.margin, decreasing = T),]
+      df.g <- df.g[1,]
       df.c <-Seurat::FetchData(scrna, vars = c(gene, "ident"))
       df.c$ident <- ifelse(df.c$ident == id, id, "Other")
       df.c$gene <- paste(gene)
@@ -813,12 +809,10 @@ plot_ridge <- function(scrna, id, genes, ncol = 1, step = 0.01, show_split = T, 
     # return()
   }else{
     for (gene in genes) {
-      fc <- Seurat::FoldChange(scrna, ident.1 = id, features = gene)$avg_log2FC
-      if (fc > 0) {
-        df.g <- get_gene_score_pos(scrna, gene, id, step = 0.01, assay = assay, slot = slot)
-      }else{
-        df.g <- get_gene_score_neg(scrna, gene, id, step = 0.01, assay = assay, slot = slot)
-      }
+      df.g <- get_gene_score(Seurat::FetchData(scrna, vars = c(gene, "ident")), celltype = id, gene = gene)
+      df.g <- df.g[order(df.g$x.margin, decreasing = T),]
+      df.g <- df.g[1,]
+
       df.c <-Seurat::FetchData(scrna, vars = c(gene, "ident"))
       df.c$gene <- paste(gene)
       colnames(df.c) <- c("Exprs", "Ident", "Gene")
