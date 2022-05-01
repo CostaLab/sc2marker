@@ -668,89 +668,6 @@ get_antibody <- function(markers.list, rm.noab = T, org = "human",
   }
 }
 
-
-#' Get cell names which meet cutoff
-#' @param scrna seurat obj to be used
-#' @param geneset custom genes to test, all genes in obj to use if NULL
-#' @param id interested cell group
-#' @param category indicate the ICC/IHC/Flow, if NULL use all genes.
-#' @param assay indicate the assay to compute
-#' @param slot indicate the slot of data to compute
-#' @param step quantile steps
-#' @param min.pct only test genes that are detected in a minimum fraction of min.pct cells in either of the two populations. Meant to speed up the function by not testing genes that are very infrequently expressed. Default is 0.1
-#' @param use.all Don't do any filter on input geneset
-#' @return list of markers performance
-#'
-#'
-GetGenes <- function(scrna, slot = "data", category = NULL, geneset = NULL,
-                     assay = "RNA", min.pct = 0.1, use.all = F, species = "Human"){
-  if (category == "IHC") {
-    genes.touse <- IHC$Gene
-  }else if (category == "ICC") {
-    genes.touse <- ICC$Gene
-  }else if (category == "Flow") {
-    genes.touse <- surface.genes
-  }
-
-  if (!is.null(category) & is.null(geneset)) {
-    print("Use self define genes should set the category to NULL")
-    return(NULL)
-  }
-
-  if (is.null(category) & is.null(geneset)) {
-    genes.touse <- rownames(scrna[[assay]])
-  }else if (is.null(category) & !is.null(geneset)){
-    genes.touse <- intersect(rownames(scrna[[assay]]), geneset)
-  }
-
-  if (length(genes.touse) == 0) {
-    print("Find none of genes in the obj")
-    return(NULL)
-  }
-
-  if (use.all) {
-    geneset <- intersect(rownames(scrna[[assay]]), geneset)
-    de <- Seurat::FoldChange(scrna, ident.1 = id, features = geneset)
-  }
-  if (!use.all) {
-    if (do.fast) {
-      de <- Seurat::FindMarkers(scrna, ident.1 = id, features = geneset)
-      de <- subset(de, p_val_adj < 0.05)
-    }else{
-      de <- Seurat::FoldChange(scrna, ident.1 = id, features = geneset)
-      de <- de[de$pct.1 > min.pct, ]
-    }
-  }
-
-
-  de$gene <- rownames(de)
-  # markers.pos <- subset(de, avg_log2FC > 0)
-  # markers.neg <- subset(de, avg_log2FC < 0)
-  markers.pos <- de
-  markers.neg <- de
-
-  gene.rank.list <- data.frame()
-
-  for (genes in rownames(markers.pos)) {
-    de <- data.frame(get_gene_score_pos(scrna, genes, id, step, assay  = assay, slot = slot))
-    names(de)<-c("gene", "split.value","x.margin", "x.margin.adj", "tp", "fp", "direction")
-    gene.rank.list <- rbind(gene.rank.list, de)
-  }
-  for (genes in rownames(markers.neg)) {
-    de <- data.frame(get_gene_score_neg(scrna, genes, id, step, assay  = assay, slot = slot))
-    names(de)<-c("gene", "split.value","x.margin", "x.margin.adj", "tp", "fp", "direction")
-    gene.rank.list <- rbind(gene.rank.list, de)
-  }
-  gene.rank.list <- gene.rank.list[order(gene.rank.list$x.margin.adj, decreasing = T),]
-  rownames(gene.rank.list) <- seq(nrow(gene.rank.list))
-  return(gene.rank.list)
-}
-
-
-
-
-
-
 #' RidgePlot of selected genes, with split value
 #' @param scrna seurat obj to be used
 #' @param genes genes to plot
@@ -763,12 +680,12 @@ GetGenes <- function(scrna, slot = "data", category = NULL, geneset = NULL,
 #'
 plot_ridge <- function(scrna, id, genes, ncol = 1, step = 0.01, show_split = T, assay = "RNA", slot = "data", aggr.other = F){
   Seurat::DefaultAssay(scrna) <- assay
-  # scrna@active.assay <- assay
   require(ggplot2)
   df.all <-data.frame()
   df.split <-data.frame()
   if (aggr.other) {
     for (gene in genes) {
+      # get the alpha split value
       df.g <- get_gene_score(Seurat::FetchData(scrna, vars = c(gene, "ident")), celltype = id, gene = gene)
       df.g <- df.g[order(df.g$x.margin, decreasing = T),]
       df.g <- df.g[1,]
@@ -781,7 +698,6 @@ plot_ridge <- function(scrna, id, genes, ncol = 1, step = 0.01, show_split = T, 
       colnames(df.g) <- c("Gene", "Split")
       df.split <- rbind(df.split,df.g)
     }
-
     df.s <- reshape2::melt(df.all)
     df.s[df.s == -Inf] <- 0
     df.s$Gene <- factor(df.s$Gene, levels = as.character(genes))
@@ -809,10 +725,10 @@ plot_ridge <- function(scrna, id, genes, ncol = 1, step = 0.01, show_split = T, 
     # return()
   }else{
     for (gene in genes) {
+      # get the alpha split value
       df.g <- get_gene_score(Seurat::FetchData(scrna, vars = c(gene, "ident")), celltype = id, gene = gene)
       df.g <- df.g[order(df.g$x.margin, decreasing = T),]
       df.g <- df.g[1,]
-
       df.c <-Seurat::FetchData(scrna, vars = c(gene, "ident"))
       df.c$gene <- paste(gene)
       colnames(df.c) <- c("Exprs", "Ident", "Gene")
@@ -1900,4 +1816,81 @@ plot_filter_combination_first2 <- function(scrna, df.split, id, step = 0.01){
 #     plots[[gene]] <- plots[[gene]] + ggtitle(paste(gene, df.split[df.split$gene == gene, ]$direction))
 #   }
 #   plot_grid(plotlist=plots)
+# }
+
+
+
+#' Get cell names which meet cutoff
+#' @param scrna seurat obj to be used
+#' @param geneset custom genes to test, all genes in obj to use if NULL
+#' @param id interested cell group
+#' @param category indicate the ICC/IHC/Flow, if NULL use all genes.
+#' @param assay indicate the assay to compute
+#' @param slot indicate the slot of data to compute
+#' @param step quantile steps
+#' @param min.pct only test genes that are detected in a minimum fraction of min.pct cells in either of the two populations. Meant to speed up the function by not testing genes that are very infrequently expressed. Default is 0.1
+#' @param use.all Don't do any filter on input geneset
+#' @return list of markers performance
+#'
+#'
+# GetGenes <- function(scrna, slot = "data", category = NULL, geneset = NULL,
+#                      assay = "RNA", min.pct = 0.1, use.all = F, species = "Human"){
+#   if (category == "IHC") {
+#     genes.touse <- IHC$Gene
+#   }else if (category == "ICC") {
+#     genes.touse <- ICC$Gene
+#   }else if (category == "Flow") {
+#     genes.touse <- surface.genes
+#   }
+#
+#   if (!is.null(category) & is.null(geneset)) {
+#     print("Use self define genes should set the category to NULL")
+#     return(NULL)
+#   }
+#
+#   if (is.null(category) & is.null(geneset)) {
+#     genes.touse <- rownames(scrna[[assay]])
+#   }else if (is.null(category) & !is.null(geneset)){
+#     genes.touse <- intersect(rownames(scrna[[assay]]), geneset)
+#   }
+#
+#   if (length(genes.touse) == 0) {
+#     print("Find none of genes in the obj")
+#     return(NULL)
+#   }
+#
+#   if (use.all) {
+#     geneset <- intersect(rownames(scrna[[assay]]), geneset)
+#     de <- Seurat::FoldChange(scrna, ident.1 = id, features = geneset)
+#   }
+#   if (!use.all) {
+#     if (do.fast) {
+#       de <- Seurat::FindMarkers(scrna, ident.1 = id, features = geneset)
+#       de <- subset(de, p_val_adj < 0.05)
+#     }else{
+#       de <- Seurat::FoldChange(scrna, ident.1 = id, features = geneset)
+#       de <- de[de$pct.1 > min.pct, ]
+#     }
+#   }
+#
+#
+#   de$gene <- rownames(de)
+#   markers.pos <- de
+#   markers.neg <- de
+#
+#   gene.rank.list <- data.frame()
+#
+#   for (genes in rownames(markers.pos)) {
+#     de <- data.frame(get_gene_score_pos(scrna, genes, id, step, assay  = assay, slot = slot))
+#     names(de)<-c("gene", "split.value","x.margin", "x.margin.adj", "tp", "fp", "direction")
+#     gene.rank.list <- rbind(gene.rank.list, de)
+#   }
+#   for (genes in rownames(markers.neg)) {
+#     de <- data.frame(get_gene_score_neg(scrna, genes, id, step, assay  = assay, slot = slot))
+#     names(de)<-c("gene", "split.value","x.margin", "x.margin.adj", "tp", "fp", "direction")
+#     gene.rank.list <- rbind(gene.rank.list, de)
+#   }
+#   gene.rank.list <- gene.rank.list[order(gene.rank.list$x.margin.adj, decreasing = T),]
+#   rownames(gene.rank.list) <- seq(nrow(gene.rank.list))
+#   return(gene.rank.list)
 # }

@@ -13,7 +13,7 @@ plot_ridge(
   show_split = T,
   assay = "RNA",
   slot = "data",
-  aggr.other = T
+  aggr.other = F
 )
 }
 \arguments{
