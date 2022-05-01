@@ -1832,7 +1832,7 @@ plot_filter_combination_first2 <- function(scrna, df.split, id, step = 0.01){
 #' @param use.all Don't do any filter on input geneset
 #' @return list of markers performance
 #'
-#'
+
 # GetGenes <- function(scrna, slot = "data", category = NULL, geneset = NULL,
 #                      assay = "RNA", min.pct = 0.1, use.all = F, species = "Human"){
 #   if (category == "IHC") {
