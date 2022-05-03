@@ -1,168 +1,3 @@
-
-#' Calculate gene positive specific score
-#'
-#' Calculate gene specific score in positive direction
-#' @param scrna obj to use
-#' @param id interested cell id
-#' @param gene gene to use
-#' @param step quantile step
-#' @param assay which assay to use in obj, default RNA
-#' @param slot which slot to use, default data
-#' @export
-#' @examples
-#' @return seurat obj with re-set Idents
-#'
-
-get_gene_score_pos <- function(scrna, gene, id, step = 0.01, assay = "RNA", slot = "data", pseudo.count = 0.01) {
-
-  scrna@active.assay <- assay
-  exprs.matrix <- Seurat::FetchData(scrna, vars = c(gene, "ident"), slot = slot)
-  colnames(exprs.matrix) <- c("exp", "id")
-  # exprs.matrix$
-  exprs.matrix <- data.table::as.data.table(exprs.matrix)
-  exprs.max <- max(exprs.matrix$exp)
-  exprs.min <- min(exprs.matrix$exp)
-  exprs.matrix$exp <- normalize(exprs.matrix$exp)
-  exprs.matrix$exp <- round(exprs.matrix$exp, 3)
-
-  gene.prauc.p <- data.frame(x.val <- c(),
-                             margin <- c())
-  celltype.in <- id
-
-  data.id <- subset(exprs.matrix, id == celltype.in)
-  data.other <- subset(exprs.matrix, id != celltype.in)
-  data.id.l <- nrow(data.id)
-  data.o.l <- nrow(data.other)
-  data.all.l <- nrow(exprs.matrix)
-
-  for (x.val in seq(0.01, 0.99, step)) {
-
-    data.i.a <- subset(data.id, exp > x.val)
-    data.o.a <- subset(data.other, exp > x.val)
-    data.i.b <- subset(data.id, exp <= x.val)
-    data.o.b <- subset(data.other, exp <= x.val)
-    x.margin.p <- sum((data.i.a$exp - x.val))*nrow(data.o.b) +
-      sum((x.val - data.o.b$exp))*nrow(data.i.a) -
-      sum((data.o.a$exp - x.val))*nrow(data.i.b)# +
-    x.margin.p <- x.margin.p/data.all.l
-    de.p <- data.frame(x.val, x.margin.p)
-    gene.prauc.p <- rbind(gene.prauc.p, de.p)
-  }
-
-  gene.prauc.p <- gene.prauc.p[order(gene.prauc.p$x.margin, decreasing = T),]
-  # gene.prauc.n <- gene.prauc.n[order(gene.prauc.n$x.margin, decreasing = T),]
-
-  # pos
-  x.split <- gene.prauc.p[1,]
-  x.val <- x.split[,1]
-  x.margin <- x.split[,2]
-  tp <- sum(data.id$exp > x.val)
-  fp <- sum(data.other$exp > x.val)
-  fn <- sum(data.id$exp <= x.val)
-  tn <- sum(data.other$exp <= x.val)
-
-  fp.pro <- subset(data.other, exp > x.val)
-  fp.pro <- as.data.frame(table(fp.pro$id))
-  fp.pro <- fp.pro[order(fp.pro$Freq, decreasing = T),]
-  if (nrow(fp.pro) >= 5) {
-    fp.pro <- fp.pro[1:5,]
-  }
-  fp.string <- paste(fp.pro$Var1, fp.pro$Freq)
-  fp.string <- toString(fp.string)
-
-  x.factor.p <- (mean(data.id$exp) + pseudo.count)/(mean(data.other$exp) + pseudo.count)
-  # x.factor.p <- (mean(data.id$exp) + pseudo.count)/(mean(data.other$exp) + pseudo.count)
-  x.margin.adj <- x.margin*(tp/data.id.l)*(tn/data.o.l)*(x.factor.p**2)
-  x.val <- x.val*exprs.max + exprs.min
-  x.split.p <- data.frame(gene, x.val, x.margin, x.margin.adj, tp, fp, tn, fn, "+", fp.string)
-  return(x.split.p)
-}
-
-
-#' Calculate gene negative specific score
-#'
-#' Calculate gene specific score in negative direction
-#' @param scrna obj to use
-#' @param id interested cell id
-#' @param gene gene to use
-#' @param step quantile step
-#' @param assay which assay to use in obj, default RNA
-#' @param slot which slot to use, default data
-#' @export
-#' @examples
-#' @return seurat obj with re-set Idents
-#'
-#'
-
-get_gene_score_neg <- function(scrna, gene, id, step = 0.01, assay = "RNA", slot = "data", pseudo.count = 0.01) {
-
-  scrna@active.assay <- assay
-  exprs.matrix <- Seurat::FetchData(scrna, vars = c(gene, "ident"), slot = slot)
-  colnames(exprs.matrix) <- c("exp", "id")
-    # exprs.matrix$
-  exprs.matrix <- data.table::as.data.table(exprs.matrix)
-  exprs.max <- max(exprs.matrix$exp)
-  exprs.min <- min(exprs.matrix$exp)
-  exprs.matrix$exp <- normalize(exprs.matrix$exp)
-  exprs.matrix$exp <- round(exprs.matrix$exp, 3)
-  exprs.matrix$exp.n <- 0 - exprs.matrix$exp
-
-  gene.prauc.n <- data.frame(x.val <- c(),
-                             margin <- c())
-  celltype.in <- id
-
-  data.id <- subset(exprs.matrix, id == celltype.in)
-  data.other <- subset(exprs.matrix, id != celltype.in)
-  data.id.l <- nrow(data.id)
-  data.o.l <- nrow(data.other)
-  data.all.l <- nrow(exprs.matrix)
-
-  for (x.val in seq(0.01, 0.99, step)) {
-
-    x.val.n <- 0 - x.val
-    data.i.a <- subset(data.id, exp.n > x.val.n)
-    data.o.a <- subset(data.other, exp.n > x.val.n)
-    data.i.b <- subset(data.id, exp.n <= x.val.n)
-    data.o.b <- subset(data.other, exp.n <= x.val.n)
-
-    x.margin.n <- sum((data.i.a$exp.n - x.val.n))*nrow(data.o.b) +
-      sum((x.val.n -data.o.b$exp.n))*nrow(data.i.a) -
-      sum((data.o.a$exp.n - x.val.n))*nrow(data.i.b)
-    x.margin.n <- x.margin.n/data.all.l
-
-    de.n <- data.frame(x.val, x.margin.n)
-    gene.prauc.n <- rbind(gene.prauc.n, de.n)
-  }
-
-  gene.prauc.n <- gene.prauc.n[order(gene.prauc.n$x.margin, decreasing = T),]
-
-  x.factor.p <- (mean(data.id$exp) + pseudo.count)/(mean(data.other$exp) + pseudo.count)
-
-  x.split <- gene.prauc.n[1,]
-  x.val <- x.split[,1]
-  x.margin <- x.split[,2]
-  tp <- sum(data.id$exp < x.val)
-  fp <- sum(data.other$exp < x.val)
-  tn <- sum(data.other$exp >= x.val)
-  fn <- sum(data.id$exp >= x.val)
-
-  fp.pro <- subset(data.other, exp < x.val)
-  fp.pro <- as.data.frame(table(fp.pro$id))
-  fp.pro <- fp.pro[order(fp.pro$Freq, decreasing = T),]
-  if (nrow(fp.pro) >= 5) {
-    fp.pro <- fp.pro[1:5,]
-  }
-  fp.string <- paste(fp.pro$Var1, fp.pro$Freq)
-  fp.string <- toString(fp.string)
-
-  x.factor.n <- round(1/x.factor.p, 1)
-  x.margin.adj <- x.margin*(tp/data.id.l)*(tn/data.o.l)*(x.factor.n**2)
-  x.val <- x.val*exprs.max + exprs.min
-  x.split.n <- data.frame(gene, x.val, x.margin, x.margin.adj, tp, fp, tn, fn, "-", fp.string)
-  return(x.split.n)
-}
-
-
 #' Calculate gene negative specific score
 #'
 #' Calculate gene specific score in negative direction
@@ -181,88 +16,6 @@ get_original_alpha <- function(scrna, gene, x.alpha, assay = "RNA", slot = "data
   g.min <- min(g.exprs[,1])
   alpha.ori <- x.alpha*g.max + g.min
   return(alpha.ori)
-}
-
-
-
-
-
-
-get_split_pos <- function(scrna, gene, id, step = 0.01, assay = "RNA", slot = "data", max.recall = F) {
-  scrna@active.assay <- assay
-  df <- FetchData(scrna, vars = c(gene, "ident"))
-  colnames(df) <- c("exp", "id")
-  gene.prauc <- data.frame(x.val <- c(),
-                           margin <- c())
-  data.id <- df[df$id == id,]
-  data.other <- df[df$id != id,]
-
-  x.max <- max(data.id$exp)
-  x.min <- min(data.id$exp)
-  x.min <- 0
-  x.num <- 1/step
-  x.factor <- as.numeric(length(df$id)/length(data.id$id))
-  x.factor <- ifelse(x.factor > 5, x.factor, 5)
-
-  for (x.val in seq(x.min, x.max, (x.max - x.min)/x.num)) {
-    tp <- sum(data.id$exp > x.val)
-    fp <- sum(data.other$exp > x.val)
-    tn <- sum(data.other$exp <= x.val)
-    fn <- sum(data.id$exp <= x.val)
-
-    if (max.recall) {
-      x.margin <- tn - fn*x.factor
-    }else{
-      x.margin <- tn - fn#*x.factor
-    }
-    de <- data.frame(gene, x.val, x.margin, "+")
-    gene.prauc <- rbind(gene.prauc, de)
-  }
-  gene.prauc <- gene.prauc[order(gene.prauc$x.margin, decreasing = T),]
-  colnames(gene.prauc) <- c("Gene", "split.value", "split.margin", "direction")
-  x.split <- gene.prauc[1,c(1,2,4)]
-  rownames(x.split) <- paste(gene)
-  return(x.split)
-}
-
-get_split_neg <- function(scrna, gene, id, step = 0.01, assay = "RNA", slot = "data", max.recall = F) {
-  scrna@active.assay <- assay
-  df <- FetchData(scrna, vars = c(gene, "ident"))
-  colnames(df) <- c("exp", "id")
-  gene.prauc <- data.frame(x.val <- c(),
-                           margin <- c())
-  data.id <- df[df$id == id,]
-  data.other <- df[df$id != id,]
-
-  x.max <- max(df$exp)
-  # x.min <- min(df[df$exp != 0, ]$exp)
-  x.min <- min(df$exp)
-  x.min <- 0
-  x.num <- 1/step
-
-  x.factor <- as.numeric(length(df$id)/length(data.id$id))
-  x.factor <- ifelse(x.factor > 5, x.factor, 5)
-
-  for (x.val in seq(x.min, x.max, (x.max - x.min)/x.num)) {
-    tp <- sum(data.id$exp <= x.val)
-    fp <- sum(data.other$exp <= x.val)
-    tn <- sum(data.other$exp > x.val)
-    fn <- sum(data.id$exp > x.val)
-
-    if (max.recall) {
-      x.margin <- tn - fn*x.factor
-    }else{
-      x.margin <- tn - fn#*x.factor
-    }
-    de <- data.frame(gene, x.val, x.margin, "-")
-    gene.prauc <- rbind(gene.prauc, de)
-  }
-  # colnames(gene.prauc) <- c("Gene", "split.value", "direction")
-  gene.prauc <- gene.prauc[order(gene.prauc$x.margin, decreasing = T),]
-  colnames(gene.prauc) <- c("Gene", "split.value", "split.margin", "direction")
-  x.split <- gene.prauc[1,c(1,2,4)]
-  rownames(x.split) <- paste(gene)
-  return(x.split)
 }
 
 #' Firstup character
@@ -496,10 +249,13 @@ get_gene_score <- function (exprs.matrix, celltype, gene, step = 0.01, pseudo.co
   for (x.val in seq(0.001, 0.99, step)) {
 
     # Positive direction
+    # get subset for TP, FP, TN, FN
     data.i.a <- subset(data.id, exp > x.val)
     data.o.a <- subset(data.other, exp > x.val)
     data.i.b <- subset(data.id, exp <= x.val)
     data.o.b <- subset(data.other, exp <= x.val)
+
+    # get the margin
     x.margin.p <- sum((data.i.a$exp - x.val)) * nrow(data.o.b) +
       sum((x.val - data.o.b$exp)) * nrow(data.i.a) - sum((data.o.a$exp -
                                                             x.val)) * nrow(data.i.b)
@@ -508,11 +264,14 @@ get_gene_score <- function (exprs.matrix, celltype, gene, step = 0.01, pseudo.co
     gene.prauc.p <- rbind(gene.prauc.p, de.p)
 
     # Negative direction
+    # get subset for TP, FP, TN, FN
     x.val.n <- 0 - x.val
     data.i.a <- subset(data.id, exp.n > x.val.n)
     data.o.a <- subset(data.other, exp.n > x.val.n)
     data.i.b <- subset(data.id, exp.n <= x.val.n)
     data.o.b <- subset(data.other, exp.n <= x.val.n)
+
+    # get the margin
     x.margin.n <- sum((data.i.a$exp.n - x.val.n)) * nrow(data.o.b) +
       sum((x.val.n - data.o.b$exp.n)) * nrow(data.i.a) -
       sum((data.o.a$exp.n - x.val.n)) * nrow(data.i.b)
@@ -520,10 +279,13 @@ get_gene_score <- function (exprs.matrix, celltype, gene, step = 0.01, pseudo.co
     de.n <- data.frame(x.val, x.margin.n)
     gene.prauc.n <- rbind(gene.prauc.n, de.n)
   }
+
+  # get the max margin
   gene.prauc.p <- gene.prauc.p[order(gene.prauc.p$x.margin,
                                      decreasing = T), ]
   gene.prauc.n <- gene.prauc.n[order(gene.prauc.n$x.margin,
                                      decreasing = T), ]
+  # Positive direction final score calculation
   x.split <- gene.prauc.p[1, ]
   x.val <- x.split[, 1]
   x.margin <- x.split[, 2]
@@ -531,6 +293,8 @@ get_gene_score <- function (exprs.matrix, celltype, gene, step = 0.01, pseudo.co
   fp <- sum(data.other$exp > x.val)
   fn <- sum(data.id$exp <= x.val)
   tn <- sum(data.other$exp <= x.val)
+
+  # get top 5 false positive resources
   fp.pro <- subset(data.other, exp > x.val)
   fp.pro <- as.data.frame(table(fp.pro$id))
   fp.pro <- fp.pro[order(fp.pro$Freq, decreasing = T), ]
@@ -541,11 +305,15 @@ get_gene_score <- function (exprs.matrix, celltype, gene, step = 0.01, pseudo.co
   fp.string <- toString(fp.string)
   x.factor.p <- (mean(data.id$exp) + pseudo.count)/(mean(data.other$exp) +
                                                       pseudo.count)
+
+  # get the score
   x.margin.adj <- x.margin * (tp/data.id.l) * (tn/data.o.l) *
     (x.factor.p^2)
   x.val <- x.val * exprs.max + exprs.min
   x.split.p <- data.frame(gene, x.val, x.margin, x.margin.adj,
                           tp, fp, tn, fn, "+", fp.string)
+
+  # Negative direction final score calculation
   x.split <- gene.prauc.n[1, ]
   x.val <- x.split[, 1]
   x.margin <- x.split[, 2]
@@ -554,7 +322,7 @@ get_gene_score <- function (exprs.matrix, celltype, gene, step = 0.01, pseudo.co
   tn <- sum(data.other$exp >= x.val)
   fn <- sum(data.id$exp >= x.val)
 
-  # Show top 5 false positive resources
+  # get top 5 false positive resources
   fp.pro <- subset(data.other, exp < x.val)
   fp.pro <- as.data.frame(table(fp.pro$id))
   fp.pro <- fp.pro[order(fp.pro$Freq, decreasing = T), ]
@@ -1894,3 +1662,245 @@ plot_filter_combination_first2 <- function(scrna, df.split, id, step = 0.01){
 #   rownames(gene.rank.list) <- seq(nrow(gene.rank.list))
 #   return(gene.rank.list)
 # }
+
+
+#' Calculate gene positive specific score
+#'
+#' Calculate gene specific score in positive direction
+#' @param scrna obj to use
+#' @param id interested cell id
+#' @param gene gene to use
+#' @param step quantile step
+#' @param assay which assay to use in obj, default RNA
+#' @param slot which slot to use, default data
+#' @export
+#' @examples
+#' @return seurat obj with re-set Idents
+#'
+
+get_gene_score_pos <- function(scrna, gene, id, step = 0.01, assay = "RNA", slot = "data", pseudo.count = 0.01) {
+
+  scrna@active.assay <- assay
+  exprs.matrix <- Seurat::FetchData(scrna, vars = c(gene, "ident"), slot = slot)
+  colnames(exprs.matrix) <- c("exp", "id")
+  # exprs.matrix$
+  exprs.matrix <- data.table::as.data.table(exprs.matrix)
+  exprs.max <- max(exprs.matrix$exp)
+  exprs.min <- min(exprs.matrix$exp)
+  exprs.matrix$exp <- normalize(exprs.matrix$exp)
+  exprs.matrix$exp <- round(exprs.matrix$exp, 3)
+
+  gene.prauc.p <- data.frame(x.val <- c(),
+                             margin <- c())
+  celltype.in <- id
+
+  data.id <- subset(exprs.matrix, id == celltype.in)
+  data.other <- subset(exprs.matrix, id != celltype.in)
+  data.id.l <- nrow(data.id)
+  data.o.l <- nrow(data.other)
+  data.all.l <- nrow(exprs.matrix)
+
+  for (x.val in seq(0.01, 0.99, step)) {
+
+    data.i.a <- subset(data.id, exp > x.val)
+    data.o.a <- subset(data.other, exp > x.val)
+    data.i.b <- subset(data.id, exp <= x.val)
+    data.o.b <- subset(data.other, exp <= x.val)
+    x.margin.p <- sum((data.i.a$exp - x.val))*nrow(data.o.b) +
+      sum((x.val - data.o.b$exp))*nrow(data.i.a) -
+      sum((data.o.a$exp - x.val))*nrow(data.i.b)# +
+    x.margin.p <- x.margin.p/data.all.l
+    de.p <- data.frame(x.val, x.margin.p)
+    gene.prauc.p <- rbind(gene.prauc.p, de.p)
+  }
+
+  gene.prauc.p <- gene.prauc.p[order(gene.prauc.p$x.margin, decreasing = T),]
+  # gene.prauc.n <- gene.prauc.n[order(gene.prauc.n$x.margin, decreasing = T),]
+
+  # pos
+  x.split <- gene.prauc.p[1,]
+  x.val <- x.split[,1]
+  x.margin <- x.split[,2]
+  tp <- sum(data.id$exp > x.val)
+  fp <- sum(data.other$exp > x.val)
+  fn <- sum(data.id$exp <= x.val)
+  tn <- sum(data.other$exp <= x.val)
+
+  fp.pro <- subset(data.other, exp > x.val)
+  fp.pro <- as.data.frame(table(fp.pro$id))
+  fp.pro <- fp.pro[order(fp.pro$Freq, decreasing = T),]
+  if (nrow(fp.pro) >= 5) {
+    fp.pro <- fp.pro[1:5,]
+  }
+  fp.string <- paste(fp.pro$Var1, fp.pro$Freq)
+  fp.string <- toString(fp.string)
+
+  x.factor.p <- (mean(data.id$exp) + pseudo.count)/(mean(data.other$exp) + pseudo.count)
+  # x.factor.p <- (mean(data.id$exp) + pseudo.count)/(mean(data.other$exp) + pseudo.count)
+  x.margin.adj <- x.margin*(tp/data.id.l)*(tn/data.o.l)*(x.factor.p**2)
+  x.val <- x.val*exprs.max + exprs.min
+  x.split.p <- data.frame(gene, x.val, x.margin, x.margin.adj, tp, fp, tn, fn, "+", fp.string)
+  return(x.split.p)
+}
+
+
+#' Calculate gene negative specific score
+#'
+#' Calculate gene specific score in negative direction
+#' @param scrna obj to use
+#' @param id interested cell id
+#' @param gene gene to use
+#' @param step quantile step
+#' @param assay which assay to use in obj, default RNA
+#' @param slot which slot to use, default data
+#' @export
+#' @examples
+#' @return seurat obj with re-set Idents
+#'
+#'
+
+get_gene_score_neg <- function(scrna, gene, id, step = 0.01, assay = "RNA", slot = "data", pseudo.count = 0.01) {
+
+  scrna@active.assay <- assay
+  exprs.matrix <- Seurat::FetchData(scrna, vars = c(gene, "ident"), slot = slot)
+  colnames(exprs.matrix) <- c("exp", "id")
+  # exprs.matrix$
+  exprs.matrix <- data.table::as.data.table(exprs.matrix)
+  exprs.max <- max(exprs.matrix$exp)
+  exprs.min <- min(exprs.matrix$exp)
+  exprs.matrix$exp <- normalize(exprs.matrix$exp)
+  exprs.matrix$exp <- round(exprs.matrix$exp, 3)
+  exprs.matrix$exp.n <- 0 - exprs.matrix$exp
+
+  gene.prauc.n <- data.frame(x.val <- c(),
+                             margin <- c())
+  celltype.in <- id
+
+  data.id <- subset(exprs.matrix, id == celltype.in)
+  data.other <- subset(exprs.matrix, id != celltype.in)
+  data.id.l <- nrow(data.id)
+  data.o.l <- nrow(data.other)
+  data.all.l <- nrow(exprs.matrix)
+
+  for (x.val in seq(0.01, 0.99, step)) {
+
+    x.val.n <- 0 - x.val
+    data.i.a <- subset(data.id, exp.n > x.val.n)
+    data.o.a <- subset(data.other, exp.n > x.val.n)
+    data.i.b <- subset(data.id, exp.n <= x.val.n)
+    data.o.b <- subset(data.other, exp.n <= x.val.n)
+
+    x.margin.n <- sum((data.i.a$exp.n - x.val.n))*nrow(data.o.b) +
+      sum((x.val.n -data.o.b$exp.n))*nrow(data.i.a) -
+      sum((data.o.a$exp.n - x.val.n))*nrow(data.i.b)
+    x.margin.n <- x.margin.n/data.all.l
+
+    de.n <- data.frame(x.val, x.margin.n)
+    gene.prauc.n <- rbind(gene.prauc.n, de.n)
+  }
+
+  gene.prauc.n <- gene.prauc.n[order(gene.prauc.n$x.margin, decreasing = T),]
+
+  x.factor.p <- (mean(data.id$exp) + pseudo.count)/(mean(data.other$exp) + pseudo.count)
+
+  x.split <- gene.prauc.n[1,]
+  x.val <- x.split[,1]
+  x.margin <- x.split[,2]
+  tp <- sum(data.id$exp < x.val)
+  fp <- sum(data.other$exp < x.val)
+  tn <- sum(data.other$exp >= x.val)
+  fn <- sum(data.id$exp >= x.val)
+
+  fp.pro <- subset(data.other, exp < x.val)
+  fp.pro <- as.data.frame(table(fp.pro$id))
+  fp.pro <- fp.pro[order(fp.pro$Freq, decreasing = T),]
+  if (nrow(fp.pro) >= 5) {
+    fp.pro <- fp.pro[1:5,]
+  }
+  fp.string <- paste(fp.pro$Var1, fp.pro$Freq)
+  fp.string <- toString(fp.string)
+
+  x.factor.n <- round(1/x.factor.p, 1)
+  x.margin.adj <- x.margin*(tp/data.id.l)*(tn/data.o.l)*(x.factor.n**2)
+  x.val <- x.val*exprs.max + exprs.min
+  x.split.n <- data.frame(gene, x.val, x.margin, x.margin.adj, tp, fp, tn, fn, "-", fp.string)
+  return(x.split.n)
+}
+
+
+get_split_pos <- function(scrna, gene, id, step = 0.01, assay = "RNA", slot = "data", max.recall = F) {
+  scrna@active.assay <- assay
+  df <- FetchData(scrna, vars = c(gene, "ident"))
+  colnames(df) <- c("exp", "id")
+  gene.prauc <- data.frame(x.val <- c(),
+                           margin <- c())
+  data.id <- df[df$id == id,]
+  data.other <- df[df$id != id,]
+
+  x.max <- max(data.id$exp)
+  x.min <- min(data.id$exp)
+  x.min <- 0
+  x.num <- 1/step
+  x.factor <- as.numeric(length(df$id)/length(data.id$id))
+  x.factor <- ifelse(x.factor > 5, x.factor, 5)
+
+  for (x.val in seq(x.min, x.max, (x.max - x.min)/x.num)) {
+    tp <- sum(data.id$exp > x.val)
+    fp <- sum(data.other$exp > x.val)
+    tn <- sum(data.other$exp <= x.val)
+    fn <- sum(data.id$exp <= x.val)
+
+    if (max.recall) {
+      x.margin <- tn - fn*x.factor
+    }else{
+      x.margin <- tn - fn#*x.factor
+    }
+    de <- data.frame(gene, x.val, x.margin, "+")
+    gene.prauc <- rbind(gene.prauc, de)
+  }
+  gene.prauc <- gene.prauc[order(gene.prauc$x.margin, decreasing = T),]
+  colnames(gene.prauc) <- c("Gene", "split.value", "split.margin", "direction")
+  x.split <- gene.prauc[1,c(1,2,4)]
+  rownames(x.split) <- paste(gene)
+  return(x.split)
+}
+
+get_split_neg <- function(scrna, gene, id, step = 0.01, assay = "RNA", slot = "data", max.recall = F) {
+  scrna@active.assay <- assay
+  df <- FetchData(scrna, vars = c(gene, "ident"))
+  colnames(df) <- c("exp", "id")
+  gene.prauc <- data.frame(x.val <- c(),
+                           margin <- c())
+  data.id <- df[df$id == id,]
+  data.other <- df[df$id != id,]
+
+  x.max <- max(df$exp)
+  # x.min <- min(df[df$exp != 0, ]$exp)
+  x.min <- min(df$exp)
+  x.min <- 0
+  x.num <- 1/step
+
+  x.factor <- as.numeric(length(df$id)/length(data.id$id))
+  x.factor <- ifelse(x.factor > 5, x.factor, 5)
+
+  for (x.val in seq(x.min, x.max, (x.max - x.min)/x.num)) {
+    tp <- sum(data.id$exp <= x.val)
+    fp <- sum(data.other$exp <= x.val)
+    tn <- sum(data.other$exp > x.val)
+    fn <- sum(data.id$exp > x.val)
+
+    if (max.recall) {
+      x.margin <- tn - fn*x.factor
+    }else{
+      x.margin <- tn - fn#*x.factor
+    }
+    de <- data.frame(gene, x.val, x.margin, "-")
+    gene.prauc <- rbind(gene.prauc, de)
+  }
+  # colnames(gene.prauc) <- c("Gene", "split.value", "direction")
+  gene.prauc <- gene.prauc[order(gene.prauc$x.margin, decreasing = T),]
+  colnames(gene.prauc) <- c("Gene", "split.value", "split.margin", "direction")
+  x.split <- gene.prauc[1,c(1,2,4)]
+  rownames(x.split) <- paste(gene)
+  return(x.split)
+}
