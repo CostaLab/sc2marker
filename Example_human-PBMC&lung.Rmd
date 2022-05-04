@@ -13,20 +13,22 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-suppressMessages(library(sc2marker))
 ```
 
 # load data
 
-You can download the R object in "https://zenodo.org/record/5850233#.YeMQs_7MKUk"
+You can also download the R object in "https://zenodo.org/record/5854754" manually.
 
 ```{r SeuratObject, warning=F,message=F}
-suppressMessages(library(SeuratData))
 suppressMessages(library(Seurat))
+suppressMessages(library(sc2marker))
+savedir <- "save"
+dir.create(file.path(savedir))
+download.file(url = "https://zenodo.org/record/5854754/files/human-PBMC%26lung.rds?download=1",
+              destfile = file.path(savedir, "human_PBMC_lung.rds"), method = "curl")
+human_PBMC_lung <- readRDS(file.path(savedir, "human_PBMC_lung.rds"))
 
-
-human_PBMC_lung <- readRDS("/home/ronghui/Downloads/human-PBMC&lung.rds")
-
+# Rename Ident
 human_PBMC_lung <- RenameIdents(object = human_PBMC_lung, `0` = "CD4 T")
 human_PBMC_lung <- RenameIdents(object = human_PBMC_lung, `3` = "CD4 T")
 human_PBMC_lung <- RenameIdents(object = human_PBMC_lung, `14` = "T.Treg")

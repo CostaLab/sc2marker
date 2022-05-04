@@ -14,15 +14,16 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 suppressMessages(library(sc2marker))
+suppressMessages(library(Seurat))
+devtools::install_github('satijalab/seurat-data')
+suppressMessages(library(SeuratData))
 ```
 
 # load data
 
-You can load the HCA-BM object by SeuratData
+You can load the HCA-BM object by SeuratData.
 
 ```{r SeuratObject, warning=F,message=F}
-suppressMessages(library(SeuratData))
-suppressMessages(library(Seurat))
 #load reference data
 InstallData("bmcite")
 bmc <- LoadData(ds = "bmcite")
