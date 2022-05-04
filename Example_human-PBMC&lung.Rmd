@@ -64,7 +64,7 @@ get_antibody(mDC.markers, org = "human")
 ```
 
 ```{r message=F, warning=F, fig.height=9, fig.width=9}
-# Ridge plot of top 9 markers of NK cells
+# Ridge plot of top 9 markers of mDC cells
 plot_ridge(human_PBMC_lung, id = "mDC", genes = mDC.markers[1:9,]$gene, ncol = 3, assay = "RNA.kallisto", aggr.other = F)
 ```
 
@@ -77,7 +77,7 @@ get_antibody(pDC.markers, org = "human")
 
 
 ```{r message=F, warning=F, fig.height=9, fig.width=9}
-# Ridge plot of top 9 markers of NK cells
+# Ridge plot of top 9 markers of pDC cells
 plot_ridge(human_PBMC_lung, id = "pDC", genes = pDC.markers[1:9,]$gene, ncol = 3, assay = "RNA.kallisto", aggr.other = F)
 ```
 
@@ -103,7 +103,7 @@ get_antibody(t.markers, org = "human")
 ```
 
 ```{r message=F, warning=F, fig.height=9, fig.width=9}
-# Ridge plot of top 9 markers of B cells
+# Ridge plot of top 9 markers of CD8 T cells
 plot_ridge(human_PBMC_lung, id = "CD8 T", genes = t.markers[1:9,]$gene, ncol = 3, assay = "RNA.kallisto", aggr.other = F)
 ```
 
@@ -116,7 +116,7 @@ get_antibody(Macro.markers, org = "human")
 ```
 
 ```{r message=F, warning=F, fig.height=9, fig.width=9}
-# Ridge plot of top 9 markers of B cells
+# Ridge plot of top 9 markers of Macro cells
 plot_ridge(human_PBMC_lung, id = "Macro", genes = Macro.markers[1:9,]$gene, ncol = 3, assay = "RNA.kallisto", aggr.other = F)
 ```
 
@@ -128,7 +128,7 @@ get_antibody(Epithelia.markers, org = "human")
 ```
 
 ```{r message=F, warning=F, fig.height=9, fig.width=9}
-# Ridge plot of top 9 markers of B cells
+# Ridge plot of top 9 markers of Epithelia cells
 plot_ridge(human_PBMC_lung, id = "Epithelia", genes = Epithelia.markers[1:9,]$gene, ncol = 3, assay = "RNA.kallisto", aggr.other = F)
 ```
 

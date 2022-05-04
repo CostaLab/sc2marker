@@ -58,7 +58,7 @@ get_antibody(Mono.markers, org = "human")
 ```
 
 ```{r message=F, warning=F, fig.height=9, fig.width=9}
-# Ridge plot of top 9 markers of B cells
+# Ridge plot of top 9 markers of Mono cells
 plot_ridge(human_PBMC, id = "Mono", genes = Mono.markers[1:9,]$gene, ncol = 3, assay = "SCT", aggr.other = F)
 ```
 
@@ -70,7 +70,7 @@ get_antibody(DC.markers, org = "human")
 ```
 
 ```{r message=F, warning=F, fig.height=9, fig.width=9}
-# Ridge plot of top 9 markers of B cells
+# Ridge plot of top 9 markers of DC cells
 plot_ridge(human_PBMC, id = "DC", genes = DC.markers[1:9,]$gene, ncol = 3, assay = "SCT", aggr.other = F)
 ```
 
@@ -82,7 +82,7 @@ get_antibody(NK.markers, org = "human")
 ```
 
 ```{r message=F, warning=F, fig.height=9, fig.width=9}
-# Ridge plot of top 9 markers of B cells
+# Ridge plot of top 9 markers of NK cells
 plot_ridge(human_PBMC, id = "NK", genes = NK.markers[1:9,]$gene, ncol = 3, assay = "SCT", aggr.other = F)
 ```
 
@@ -95,7 +95,7 @@ get_antibody(t.markers, org = "human")
 ```
 
 ```{r message=F, warning=F, fig.height=9, fig.width=9}
-# Ridge plot of top 9 markers of B cells
+# Ridge plot of top 9 markers of CD8 T cells
 plot_ridge(human_PBMC, id = "CD8 T", genes = t.markers[1:9,]$gene, ncol = 3, assay = "SCT", aggr.other = F)
 ```
 
@@ -107,6 +107,6 @@ get_antibody(t.markers, org = "human")
 ```
 
 ```{r message=F, warning=F, fig.height=9, fig.width=9}
-# Ridge plot of top 9 markers of B cells
+# Ridge plot of top 9 markers of CD4 T cells
 plot_ridge(human_PBMC, id = "CD4 T", genes = t.markers[1:9,]$gene, ncol = 3, assay = "SCT", aggr.other = F)
 ```
