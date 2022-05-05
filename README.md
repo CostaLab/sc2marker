@@ -9,8 +9,6 @@ You can install sc2marker with the following commands:
 ```{r}
 install.packages("devtools")
 devtools::install_github("https://github.com/CostaLab/sc2marker", build_vignettes = TRUE)
-require(sc2marker)
-require(Seurat)
 ```
 
 ## Detect markers for given cell cluster
@@ -18,6 +16,8 @@ require(Seurat)
 To run sc2marker you need to execute the following command, providing a clustered single  cell data sets (as Seurat object), the cell type of interest and the antibody databased (IHC, ICC or Flow). 
 
 ```{r}
+require(sc2marker)
+require(Seurat)
 nk.markers <- Detect_single_marker(mca.spleen, id = "NK cell(Spleen)", category = "Flow", org = "mouse")
 ```
 
