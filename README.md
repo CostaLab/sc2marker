@@ -81,15 +81,9 @@ generate_report(mca.spleen, all.markers, fpath = ".", fname = "mca.spleen")
 
 # Reproduction
 
-All code and R object needed to generate the results can be found in [zenodo](https://zenodo.org/record/5854754#.YeknMf7MKUm).
-Also, you can find the original data of MCA, human-PBMC and human-PBMC&lung and Stromal data as following:
-[MCA](https://figshare.com/articles/dataset/MCA_DGE_Data/5435866),
-[human-PBMC&lung](https://archive.softwareheritage.org/browse/revision/1c7fcabb18a1971dc4d6e29bc3ed4f6f36b2361f/),
-[human-PBMC](https://atlas.fredhutch.org/nygc/multimodal-pbmc/),
-[human-BM](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE128639),
-[niche stromal](https://nicheview.shiny.embl.de/)
+All code and R object needed to generate the results of sc2marker manuscript can be found in [zenodo](https://zenodo.org/record/5854754#.YeknMf7MKUm).
 
-The scripts below can be executed for R objects obtained in zenodo. Be sure to configure your R paths. 
+The scripts below reproduce individual analysis. Please check packages installation and R path configuration before running these scripts.  
 
 ### Code for MCA Spleen (Mouse)
 [Example_MCA_Spleen.Rmd](Example_MCA_Spleen.Rmd)
@@ -104,6 +98,12 @@ The scripts below can be executed for R objects obtained in zenodo. Be sure to c
 ### Code for Human Bone marrow (human-PBMC)
 [Example_human_PBMC.Rmd](Example_human_PBMC.Rmd)
 
+Also, you can find the original data of MCA, human-PBMC and human-PBMC&lung and Stromal data as following:
+[MCA](https://figshare.com/articles/dataset/MCA_DGE_Data/5435866),
+[human-PBMC&lung](https://archive.softwareheritage.org/browse/revision/1c7fcabb18a1971dc4d6e29bc3ed4f6f36b2361f/),
+[human-PBMC](https://atlas.fredhutch.org/nygc/multimodal-pbmc/),
+[human-BM](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE128639),
+[niche stromal](https://nicheview.shiny.embl.de/)
 
 
 
