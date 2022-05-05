@@ -14,26 +14,18 @@ output:
 ```{r echo=FALSE, message=FALSE, warning=F}
 library(Seurat)
 library(ggplot2)
-library(reshape2)
 library(ggsci)
 require(sc2marker)
 require(Seurat)
-require(SeuratObject)
-
-if (!requireNamespace("remotes", quietly = TRUE)) {
-  install.packages("remotes")
-}
-remotes::install_github("mojaveazure/seurat-disk")
-require(SeuratDisk)
-
-### Download the hd5f file.
-### You can also download the R object in "https://zenodo.org/record/5854754"
 
 savedir <- "save"
 dir.create(file.path(savedir))
-download.file(url = "https://atlas.fredhutch.org/data/nygc/multimodal/pbmc_multimodal.h5seurat",
-              destfile = file.path(savedir, "pbmc_multimodal.h5seurat"), method = "curl")
-human_PBMC <- LoadH5Seurat(file.path(savedir, "pbmc_multimodal.h5seurat"))
+
+download.file(url = "https://zenodo.org/record/5854754/files/human-PBMC.rds?download=1",
+              destfile = file.path(savedir, "pbmc_multimodal.rds"), method = "curl")
+
+
+human_PBMC <- readRDS(file.path(savedir, "pbmc_multimodal.rds"))
 Idents(human_PBMC) <- "celltype.l1"
 table(human_PBMC@active.ident)
 ```
