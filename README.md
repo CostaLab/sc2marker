@@ -18,7 +18,7 @@ To run sc2marker you need to execute the following command, providing a clustere
 ```{r}
 require(sc2marker)
 require(Seurat)
-nk.markers <- Detect_single_marker(mca.spleen, id = "NK cell", category = "Flow", org = "mouse")
+nk.markers <- Detect_single_marker(mca.spleen, id = "NK cell(Spleen)", category = "Flow", org = "mouse")
 ```
 
 You can display the results as a table with the command:
