@@ -90,7 +90,7 @@ Example for MCA-Spleen in [Rmarkdown](Example_MCA_Spleen.Rmd) format and in [htm
 
 
 ### Code for Human Bone marrow (human-BM)
-[SeuratData required](https://github.com/satijalab/seurat-data) [Example_human_BM.Rmd](Example_human_BM.Rmd)
+[SeuratData](https://github.com/satijalab/seurat-data) to load the R object. [Example_human_BM.Rmd](Example_human_BM.Rmd)
 
 ### Code for Human PBMC&lung (human-PBMC&lung)
 [Example_human_PBMC&lung.Rmd](Example_human-PBMC&lung.Rmd)
