@@ -86,7 +86,7 @@ All code and R object needed to generate the results of sc2marker manuscript can
 The scripts below reproduce individual analysis. Please check packages installation and R path configuration before running these scripts.  
 
 ### Code for MCA Spleen (Mouse)
-[Example_MCA_Spleen.Rmd](Example_MCA_Spleen.Rmd)
+[Example_MCA_Spleen](Example_MCA_Spleen.Rmd)
 
 
 ### Code for Human Bone marrow (human-BM)
