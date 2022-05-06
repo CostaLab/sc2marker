@@ -83,7 +83,7 @@ generate_report(mca.spleen, all.markers, fpath = ".", fname = "mca.spleen")
 
 All code and R object needed to generate the results of sc2marker manuscript can be found in [zenodo](https://zenodo.org/record/5854754#.YeknMf7MKUm).
 
-The scripts below reproduce individual analysis. Please check packages installation and R path configuration before running these scripts.  
+The scripts below reproduce individual analysis. Please note that some packages might require manual installation ( 'seurat-data' and 'ggsci'). Also, configure your R paths before running these scripts.  
 
 ### Code for MCA Spleen (Mouse)
 Example for MCA-Spleen in [Rmarkdown](Example_MCA_Spleen.Rmd) format and in [html](Example_MCA_Spleen.html) format.
