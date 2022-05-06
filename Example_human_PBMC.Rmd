@@ -14,7 +14,6 @@ output:
 ```{r echo=FALSE, message=FALSE, warning=F}
 library(Seurat)
 library(ggplot2)
-library(ggsci)
 require(sc2marker)
 require(Seurat)
 
