@@ -18,7 +18,7 @@ To run sc2marker you need to execute the following command, providing a clustere
 ```{r}
 require(sc2marker)
 require(Seurat)
-nk.markers <- Detect_single_marker(mca.spleen, id = "NK cell(Spleen)", category = "Flow", org = "mouse")
+nk.markers <- Detect_single_marker(mca.spleen, id = "NK cell", category = "Flow", org = "mouse")
 ```
 
 You can display the results as a table with the command:
@@ -30,22 +30,22 @@ get_antibody(nk.markers, org = "mouse")
 and you can generate ridge plot with the following command:
 
 ```{r}
-plot_ridge(mca.spleen, id = "NK cell(Spleen)", genes = nk.markers[1:9,]$gene, ncol = 3, assay = "RNA", aggr.other = F)
+plot_ridge(mca.spleen, id = "NK cell", genes = nk.markers[1:9,]$gene, ncol = 3, assay = "RNA", aggr.other = F)
 ```
 
-To use customized gene set, you can run the following command. (Relax, sc2marker will recognise genes and ignore the cases.)
+To use customized gene set, you can run the following command. sc2marker will recognise genes and ignore the cases.
 
 ```
-nk.markers <- Detect_single_marker(mca.spleen, id = "NK cell(Spleen)", category = "Flow", geneset = c("CD19", "GeneA", "welcome2022"), org = "mouse")
+nk.markers <- Detect_single_marker(mca.spleen, id = "NK cell", category = "Flow", geneset = c("CD19", "GeneA", "welcome2022"), org = "mouse")
 get_antibody(nk.markers, rm.noab = F)
 ```
 
 ## To include your own antibody database
 
-Example of self made antibody database can be found in [Self-made database](Self_DB.csv)
+Example of self made antibody database can be found in [Self-made database](Self_DB.csv). Be sure to save the database within your R path and update the code above to reflect the file location in your system. 
 
 ```
-nk.markers <- Detect_single_marker(mca.spleen, id = "NK cell(Spleen)", category = "Flow", org = "mouse", self.db = "/Path to Self_DB.csv/")
+nk.markers <- Detect_single_marker(mca.spleen, id = "NK cell", category = "Flow", org = "mouse", self.db = "/Path to Self_DB.csv/")
 get_antibody(nk.markers, self.db = "/Path to Self_DB.csv/", org = "mouse")
 ```
 
