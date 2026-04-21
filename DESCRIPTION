@@ -34,7 +34,7 @@ Imports:
 	data.table,
 	Seurat (>= 5.0.0),
 	SeuratObject (>= 5.0.0),
-	ggplot2,
+	ggplot2 (>= 3.3.0),
 	MLmetrics,
 	dplyr,
 	cowplot,

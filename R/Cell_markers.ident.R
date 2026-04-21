@@ -10,7 +10,7 @@
 #' @return alpha before normalization
 #'
 get_original_alpha <- function(scrna, gene, x.alpha, assay = "RNA", slot = "data"){
-  Seurat::DefaultAssay(scrna) <- assay
+  SeuratObject::DefaultAssay(scrna) <- assay
   g.exprs <- Seurat::FetchData(scrna, gene, slot = slot)
   g.max <- max(g.exprs[,1])
   g.min <- min(g.exprs[,1])
@@ -183,7 +183,7 @@ Detect_single_marker <- function(scrna, id, step = 0.1,  slot = "data", category
   markers <- de
   gene.rank.list <- data.frame()
 
-  Seurat::DefaultAssay(scrna) <- assay
+  SeuratObject::DefaultAssay(scrna) <- assay
   exprs.matrix <- Seurat::FetchData(scrna, vars = c(rownames(markers), "ident"), slot = slot)
   # Ids.totest <- Idents(scrna)
 
@@ -447,7 +447,7 @@ get_antibody <- function(markers.list, rm.noab = T, org = "human",
 #' @export
 #'
 plot_ridge <- function(scrna, id, genes, ncol = 1, step = 0.01, show_split = T, assay = "RNA", slot = "data", aggr.other = F){
-  Seurat::DefaultAssay(scrna) <- assay
+  SeuratObject::DefaultAssay(scrna) <- assay
   df.all <-data.frame()
   df.split <-data.frame()
   if (aggr.other) {
@@ -543,7 +543,7 @@ plot_ridge <- function(scrna, id, genes, ncol = 1, step = 0.01, show_split = T, 
 #'
 
 get_gene_score_pos.fbeta <- function(scrna, gene, id, step = 0.01, assay = "RNA", slot = "data") {
-  Seurat::DefaultAssay(scrna) <- assay
+  SeuratObject::DefaultAssay(scrna) <- assay
   # scrna@active.assay <- assay
   data.mat.surf <- Seurat::FetchData(scrna, vars = c(gene, "ident"), slot = slot)
   colnames(data.mat.surf) <- c("exp", "id")
@@ -610,7 +610,7 @@ get_gene_score_pos.fbeta <- function(scrna, gene, id, step = 0.01, assay = "RNA"
 #'
 
 get_gene_score_neg.fbeta <- function(scrna, gene, id, step = 0.01, assay = "RNA", slot = "data") {
-  Seurat::DefaultAssay(scrna) <- assay
+  SeuratObject::DefaultAssay(scrna) <- assay
   # scrna@active.assay <- assay
   data.mat.surf <- Seurat::FetchData(scrna, vars = c(gene, "ident"), slot = slot)
   colnames(data.mat.surf) <- c("exp", "id")
@@ -1005,7 +1005,7 @@ get_split_pos_pos <- function(scrna, gene1, gene2, id, step = 0.01, assay = "RNA
 
 
 get_split_pos_neg <- function(scrna, gene1, gene2, id, step = 0.01, assay = "RNA", slot = "data") {
-  Seurat::DefaultAssay(scrna) <- assay
+  SeuratObject::DefaultAssay(scrna) <- assay
   data.mat.surf <- Seurat::FetchData(scrna, vars = c(gene1, gene2, "ident"), slot = slot)
   colnames(data.mat.surf) <- c("exp1", "exp2", "id")
   data.mat.surf$exp1 <- normalize(data.mat.surf$exp1)
@@ -1083,7 +1083,7 @@ get_split_pos_neg <- function(scrna, gene1, gene2, id, step = 0.01, assay = "RNA
 
 
 get_split_neg_neg  <- function(scrna, gene1, gene2, id, step = 0.01, assay = "RNA", slot = "data") {
-  Seurat::DefaultAssay(scrna) <- assay
+  SeuratObject::DefaultAssay(scrna) <- assay
   # scrna@active.assay <- assay
   data.mat.surf <- Seurat::FetchData(scrna, vars = c(gene1, gene2, "ident"), slot = slot)
   colnames(data.mat.surf) <- c("exp1", "exp2", "id")
@@ -1242,7 +1242,7 @@ get_split_neg_neg  <- function(scrna, gene1, gene2, id, step = 0.01, assay = "RN
 
 plot_combine_PRAUC <- function(scrna, gene1, gene2, id, step = 0.01, return.obj = F){
   x.df <- get_PRAUC_matrix_combine_markers(scrna, gene1, gene2, id = id, step = step)
-  g <- ggplot2::ggplot() + ggplot2::geom_line(data = x.df, mapping = ggplot2::aes(x.rec, x.pre)) + ggplot2::xlim(c(0,1)) + ggplot2::ylim(c(0,1))
+  g <- ggplot2::ggplot(data = x.df) + ggplot2::geom_line(mapping = ggplot2::aes(x.rec, x.pre)) + ggplot2::xlim(c(0,1)) + ggplot2::ylim(c(0,1))
   if (!return.obj) {
     print(g)
   }else{
