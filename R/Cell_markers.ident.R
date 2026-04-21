@@ -11,7 +11,7 @@
 #'
 get_original_alpha <- function(scrna, gene, x.alpha, assay = "RNA", slot = "data"){
   Seurat::DefaultAssay(scrna) <- assay
-  g.exprs <- FetchData(scrna, gene, slot = slot)
+  g.exprs <- Seurat::FetchData(scrna, gene, slot = slot)
   g.max <- max(g.exprs[,1])
   g.min <- min(g.exprs[,1])
   alpha.ori <- x.alpha*g.max + g.min
@@ -202,7 +202,7 @@ Detect_single_marker <- function(scrna, id, step = 0.1,  slot = "data", category
       names(de)<-c("gene", "split.value","x.margin", "x.margin.adj", "TP", "FP", "TN", "FN", "direction", "FP details")
       gene.rank.list <- rbind(gene.rank.list, de)
     }, error=function(e){cat("Warning :",conditionMessage(e), "\n")})
-    setTxtProgressBar(pb = pb, value = i)
+    utils::setTxtProgressBar(pb = pb, value = i)
     i = i + 1
   }
   close(con = pb)
@@ -448,7 +448,6 @@ get_antibody <- function(markers.list, rm.noab = T, org = "human",
 #'
 plot_ridge <- function(scrna, id, genes, ncol = 1, step = 0.01, show_split = T, assay = "RNA", slot = "data", aggr.other = F){
   Seurat::DefaultAssay(scrna) <- assay
-  require(ggplot2)
   df.all <-data.frame()
   df.split <-data.frame()
   if (aggr.other) {
@@ -471,25 +470,25 @@ plot_ridge <- function(scrna, id, genes, ncol = 1, step = 0.01, show_split = T, 
     df.s$Gene <- factor(df.s$Gene, levels = as.character(genes))
     df.split$Gene <- factor(df.split$Gene, levels = c(genes))
 
-    g <- ggplot2::ggplot(df.s, aes(x=value, y=variable, color=Ident, point_color=Ident, fill=Ident)) +
+    g <- ggplot2::ggplot(df.s, ggplot2::aes(x=value, y=variable, color=Ident, point_color=Ident, fill=Ident)) +
       ggridges::geom_density_ridges_gradient(scale = 3, size = 0.3, rel_min_height = 0.01) +
-      scale_fill_manual(values = c("#CB181D80", "#2171B580")) +
-      scale_discrete_manual("point_color", values = c("#CB181D80", "#2171B580"), guide = "none") +
-      guides(fill = guide_legend(
+      ggplot2::scale_fill_manual(values = c("#CB181D80", "#2171B580")) +
+      ggplot2::scale_discrete_manual("point_color", values = c("#CB181D80", "#2171B580"), guide = "none") +
+      ggplot2::guides(fill = ggplot2::guide_legend(
         override.aes = list(
           fill = c("#CB181D80", "#2171B580"),
           color = NA, point_color = NA))
       ) +
       ggridges::theme_ridges(grid = FALSE) +
-      ylab("") +
-      theme(
-        plot.title = element_text(hjust = 0.5),
-        plot.subtitle = element_text(hjust = 0.5)
+      ggplot2::ylab("") +
+      ggplot2::theme(
+        plot.title = ggplot2::element_text(hjust = 0.5),
+        plot.subtitle = ggplot2::element_text(hjust = 0.5)
       )
     df.split$Gene <- factor(df.split$Gene, levels = c(genes))
-    g <- g + facet_wrap(~Gene, ncol = ncol) +
-      geom_vline(data = df.split, aes(xintercept = Split), linetype="dotted",
-                 color = "red", size=1.5) + labs(fill = "Expression")
+    g <- g + ggplot2::facet_wrap(~Gene, ncol = ncol) +
+      ggplot2::geom_vline(data = df.split, ggplot2::aes(xintercept = Split), linetype="dotted",
+                          color = "red", size=1.5) + ggplot2::labs(fill = "Expression")
     # return()
   }else{
     for (gene in genes) {
@@ -507,23 +506,23 @@ plot_ridge <- function(scrna, id, genes, ncol = 1, step = 0.01, show_split = T, 
     }
     df.split$Gene <- factor(df.split$Gene, levels = c(genes))
     df.all$Gene <- factor(df.all$Gene, levels = c(genes))
-    g <- ggplot2::ggplot(df.all, aes(y=reorder(Ident, Exprs , mean),x=Exprs, fill = stat(x))) +
+    g <- ggplot2::ggplot(df.all, ggplot2::aes(y=reorder(Ident, Exprs , mean), x=Exprs, fill = ggplot2::after_stat(x))) +
       ggridges::geom_density_ridges_gradient()+
-      scale_fill_viridis_c(option = "D")+
-      theme(legend.position = "none")+
-      theme(
-        plot.title = element_text(hjust = 0.5),
-        plot.subtitle = element_text(hjust = 0.5)
-      ) + ylab("") + xlab("")
+      ggplot2::scale_fill_viridis_c(option = "D")+
+      ggplot2::theme(legend.position = "none")+
+      ggplot2::theme(
+        plot.title = ggplot2::element_text(hjust = 0.5),
+        plot.subtitle = ggplot2::element_text(hjust = 0.5)
+      ) + ggplot2::ylab("") + ggplot2::xlab("")
     g <- g  +
-      geom_vline(data = df.split, aes(xintercept = Split), linetype="dotted",
-                 color = "red", size=1.5) +
-      facet_wrap(~Gene, ncol = ncol)
+      ggplot2::geom_vline(data = df.split, ggplot2::aes(xintercept = Split), linetype="dotted",
+                          color = "red", size=1.5) +
+      ggplot2::facet_wrap(~Gene, ncol = ncol)
     # return()
   }
-  g <- g + theme_bw() +
-    theme(panel.border = element_blank(), panel.grid.major = element_blank(),
-          panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) + labs(fill = "Expression")
+  g <- g + ggplot2::theme_bw() +
+    ggplot2::theme(panel.border = ggplot2::element_blank(), panel.grid.major = ggplot2::element_blank(),
+                   panel.grid.minor = ggplot2::element_blank(), axis.line = ggplot2::element_line(colour = "black")) + ggplot2::labs(fill = "Expression")
   print(g)
   # return(g)
 }
@@ -938,8 +937,8 @@ Detect_combine_markers <- function(scrna, id, step = 0.1, category = NULL,
 # }
 
 get_split_pos_pos <- function(scrna, gene1, gene2, id, step = 0.01, assay = "RNA", slot = "data") {
-  DefaultAssay(scrna) <- assay
-  data.mat.surf <- FetchData(scrna, vars = c(gene1, gene2, "ident"), slot = slot)
+  SeuratObject::DefaultAssay(scrna) <- assay
+  data.mat.surf <- Seurat::FetchData(scrna, vars = c(gene1, gene2, "ident"), slot = slot)
   colnames(data.mat.surf) <- c("exp1", "exp2", "id")
   data.mat.surf$exp1 <- normalize(data.mat.surf$exp1)
   data.mat.surf$exp2 <- normalize(data.mat.surf$exp2)
@@ -1243,7 +1242,7 @@ get_split_neg_neg  <- function(scrna, gene1, gene2, id, step = 0.01, assay = "RN
 
 plot_combine_PRAUC <- function(scrna, gene1, gene2, id, step = 0.01, return.obj = F){
   x.df <- get_PRAUC_matrix_combine_markers(scrna, gene1, gene2, id = id, step = step)
-  g <- ggplot() + geom_line(x.df, mapping = aes(x.rec, x.pre)) + xlim(c(0,1)) + ylim(c(0,1))
+  g <- ggplot2::ggplot() + ggplot2::geom_line(data = x.df, mapping = ggplot2::aes(x.rec, x.pre)) + ggplot2::xlim(c(0,1)) + ggplot2::ylim(c(0,1))
   if (!return.obj) {
     print(g)
   }else{
@@ -1429,11 +1428,11 @@ plot_filter_stepbystep_first2 <- function(scrna, df.split, id, step = 0.01){
   x.split <- df.split$split.value[1]
   y.split <- df.split$split.value[2]
 
-  ggplot(df)+
-    geom_point(aes(exp1, exp2, color = id)) +
-    geom_segment(aes(x = x.split, y = y.split, xend = max(exp1), yend = y.split), linetype = 2)+
-    geom_segment(aes(x = x.split, y = y.split, xend = x.split, yend = max(exp2)), linetype = 2)+
-    xlab(paste(gene1)) + ylab(paste(gene2))
+  ggplot2::ggplot(df)+
+    ggplot2::geom_point(ggplot2::aes(exp1, exp2, color = id)) +
+    ggplot2::geom_segment(ggplot2::aes(x = x.split, y = y.split, xend = max(exp1), yend = y.split), linetype = 2)+
+    ggplot2::geom_segment(ggplot2::aes(x = x.split, y = y.split, xend = x.split, yend = max(exp2)), linetype = 2)+
+    ggplot2::xlab(paste(gene1)) + ggplot2::ylab(paste(gene2))
 }
 
 plot_filter_combination_first2 <- function(scrna, df.split, id, step = 0.01){
@@ -1446,22 +1445,22 @@ plot_filter_combination_first2 <- function(scrna, df.split, id, step = 0.01){
   x.split <- df.split$split.value[1]
   y.split <- df.split$split.value[2]
 
-  g <- ggplot(df)+
-    geom_point(aes(exp1, exp2, color = ID))
+  g <- ggplot2::ggplot(df)+
+    ggplot2::geom_point(ggplot2::aes(exp1, exp2, color = ID))
 
   if (df.split$direction[2] == "+") {
-    g <- g + geom_segment(aes(x = x.split, y = y.split, xend = x.split, yend = max(exp2)), linetype = 2)
+    g <- g + ggplot2::geom_segment(ggplot2::aes(x = x.split, y = y.split, xend = x.split, yend = max(exp2)), linetype = 2)
   }else{
-    g <- g + geom_segment(aes(x = x.split, y = y.split, xend = x.split, yend = min(exp2)), linetype = 2)
+    g <- g + ggplot2::geom_segment(ggplot2::aes(x = x.split, y = y.split, xend = x.split, yend = min(exp2)), linetype = 2)
   }
 
   if(df.split$direction[1] == "+") {
-    g <- g + geom_segment(aes(x = x.split, y = y.split, xend = max(exp1), yend = y.split), linetype = 2)
+    g <- g + ggplot2::geom_segment(ggplot2::aes(x = x.split, y = y.split, xend = max(exp1), yend = y.split), linetype = 2)
   }else{
-    g <- g + geom_segment(aes(x = x.split, y = y.split, xend = min(exp1), yend = y.split), linetype = 2)
+    g <- g + ggplot2::geom_segment(ggplot2::aes(x = x.split, y = y.split, xend = min(exp1), yend = y.split), linetype = 2)
   }
 
-  g <- g + xlab(paste(gene1)) + ylab(paste(gene2))
+  g <- g + ggplot2::xlab(paste(gene1)) + ggplot2::ylab(paste(gene2))
   print(g)
 }
 
@@ -1830,7 +1829,7 @@ get_gene_score_neg <- function(scrna, gene, id, step = 0.01, assay = "RNA", slot
 
 get_split_pos <- function(scrna, gene, id, step = 0.01, assay = "RNA", slot = "data", max.recall = F) {
   scrna@active.assay <- assay
-  df <- FetchData(scrna, vars = c(gene, "ident"))
+  df <- Seurat::FetchData(scrna, vars = c(gene, "ident"))
   colnames(df) <- c("exp", "id")
   gene.prauc <- data.frame(x.val <- c(),
                            margin <- c())
@@ -1867,7 +1866,7 @@ get_split_pos <- function(scrna, gene, id, step = 0.01, assay = "RNA", slot = "d
 
 get_split_neg <- function(scrna, gene, id, step = 0.01, assay = "RNA", slot = "data", max.recall = F) {
   scrna@active.assay <- assay
-  df <- FetchData(scrna, vars = c(gene, "ident"))
+  df <- Seurat::FetchData(scrna, vars = c(gene, "ident"))
   colnames(df) <- c("exp", "id")
   gene.prauc <- data.frame(x.val <- c(),
                            margin <- c())

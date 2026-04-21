@@ -27,12 +27,13 @@ License: MIT + file LICENSE
 biocViews: SystemsBiology, SingleCell, Software
 Encoding: UTF-8
 LazyData: TRUE
+Depends: R (>= 4.4.0)
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.1
 Imports:
 	data.table,
-	Seurat (>= 4.0.1),
-	SeuratObject (>= 4.0.0),
+	Seurat (>= 5.0.0),
+	SeuratObject (>= 5.0.0),
 	ggplot2,
 	MLmetrics,
 	dplyr,
