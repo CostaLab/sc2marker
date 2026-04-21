@@ -506,7 +506,7 @@ plot_ridge <- function(scrna, id, genes, ncol = 1, step = 0.01, show_split = T, 
     }
     df.split$Gene <- factor(df.split$Gene, levels = c(genes))
     df.all$Gene <- factor(df.all$Gene, levels = c(genes))
-    g <- ggplot2::ggplot(df.all, ggplot2::aes(y=reorder(Ident, Exprs , mean), x=Exprs, fill = ggplot2::after_stat(x))) +
+    g <- ggplot2::ggplot(df.all, ggplot2::aes(y=stats::reorder(Ident, Exprs , mean), x=Exprs, fill = ggplot2::after_stat(x))) +
       ggridges::geom_density_ridges_gradient()+
       ggplot2::scale_fill_viridis_c(option = "D")+
       ggplot2::theme(legend.position = "none")+
@@ -1242,7 +1242,7 @@ get_split_neg_neg  <- function(scrna, gene1, gene2, id, step = 0.01, assay = "RN
 
 plot_combine_PRAUC <- function(scrna, gene1, gene2, id, step = 0.01, return.obj = F){
   x.df <- get_PRAUC_matrix_combine_markers(scrna, gene1, gene2, id = id, step = step)
-  g <- ggplot2::ggplot(data = x.df) + ggplot2::geom_line(mapping = ggplot2::aes(x.rec, x.pre)) + ggplot2::xlim(c(0,1)) + ggplot2::ylim(c(0,1))
+  g <- ggplot2::ggplot(data = x.df) + ggplot2::geom_line(mapping = ggplot2::aes(x = x.rec, y = x.pre)) + ggplot2::xlim(c(0,1)) + ggplot2::ylim(c(0,1))
   if (!return.obj) {
     print(g)
   }else{
